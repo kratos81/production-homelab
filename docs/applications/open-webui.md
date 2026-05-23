@@ -6,7 +6,7 @@ Open WebUI provides a web-based chat interface for interacting with LLM models s
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Namespace**: `ai-platform`
 - **Endpoint**: `https://chat.homelab.local` via NGINX ingress with TLS
 - **Ollama Backend**: `http://ollama.ai-platform.svc.cluster.local:11434` (embedded Ollama disabled)

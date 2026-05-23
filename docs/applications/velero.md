@@ -6,7 +6,7 @@ Velero provides backup, restore, and disaster recovery for Kubernetes cluster re
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Namespace**: `velero`
 - **Backup Storage**: MinIO S3 bucket `velero` at `http://minio.minio.svc.cluster.local:9000`
 - **Volume Snapshots**: AWS provider with `us-east-1` region (MinIO compatibility)

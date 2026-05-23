@@ -6,7 +6,7 @@ Grafana Tempo is a high-scale distributed tracing backend. It requires only obje
 
 ## Architecture on This Platform
 
-- **Cluster**: RKE2 Kubernetes on Harvester HCI
+- **Cluster**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Deployment**: Managed via ArgoCD GitOps from `application/values/tempo-values.yaml`
 - **Mode**: Single-binary (monolithic) deployment with local persistent storage
 - **Receivers**: OTLP gRPC (port 4317) and OTLP HTTP (port 4318)

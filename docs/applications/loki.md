@@ -6,7 +6,7 @@ Grafana Loki is a horizontally scalable, highly available log aggregation system
 
 ## Architecture on This Platform
 
-- **Cluster**: RKE2 Kubernetes on Harvester HCI
+- **Cluster**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Deployment**: Managed via ArgoCD GitOps from `application/values/loki-values.yaml`
 - **Mode**: Single-binary (monolithic) deployment with persistence enabled
 - **Log ingestion**: Grafana Alloy (DaemonSet) replaces Promtail as the log collector (`promtail.enabled: false`)

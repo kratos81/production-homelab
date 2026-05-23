@@ -2,7 +2,7 @@
 
 ## Overview
 
-MetalLB provides bare-metal load balancer functionality for Kubernetes clusters that do not run on a cloud provider. In this platform, MetalLB operates in Layer 2 (ARP/NDP) mode to assign external IP addresses to `LoadBalancer`-type Services, enabling ingress traffic to reach workloads running on RKE2 on Harvester HCI.
+MetalLB provides bare-metal load balancer functionality for Kubernetes clusters that do not run on a cloud provider. In this platform, MetalLB operates in Layer 2 (ARP/NDP) mode to assign external IP addresses to `LoadBalancer`-type Services, enabling ingress traffic to reach workloads running on RKE2 on VMware vSphere / vCenter.
 
 ## Architecture on This Platform
 

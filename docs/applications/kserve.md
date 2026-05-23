@@ -6,7 +6,7 @@ KServe provides a standardized model serving interface on Kubernetes, supporting
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Namespace**: `kserve` (controller); inference services deploy to application namespaces
 - **Mode**: Serverless or RawDeployment (depending on Knative/Istio availability)
 - **Model Storage**: MinIO S3 bucket `models` for model artifacts

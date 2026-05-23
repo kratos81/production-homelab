@@ -2,11 +2,11 @@
 
 ## Overview
 
-OpenCost is a CNCF project that provides real-time Kubernetes cost monitoring. It allocates infrastructure costs to namespaces, deployments, pods, and labels based on actual resource consumption. On this platform, OpenCost uses custom pricing to reflect the true cost of the Harvester HCI infrastructure.
+OpenCost is a CNCF project that provides real-time Kubernetes cost monitoring. It allocates infrastructure costs to namespaces, deployments, pods, and labels based on actual resource consumption. On this platform, OpenCost uses custom pricing to reflect the true cost of the VMware vSphere / vCenter infrastructure.
 
 ## Architecture on This Platform
 
-- **Cluster**: RKE2 Kubernetes on Harvester HCI, cluster ID `rke2-cluster-02`
+- **Cluster**: RKE2 Kubernetes on VMware vSphere / vCenter, cluster ID `rke2-cluster-02`
 - **Deployment**: Managed via ArgoCD GitOps from `application/values/opencost-values.yaml`
 - **Prometheus integration**: Uses the internal Prometheus instance (`prometheus-kube-prometheus-prometheus` in `monitoring` namespace, port 9090)
 - **UI**: Enabled with Ingress at `opencost.homelab.local`, TLS via cert-manager (`homelab-ca-issuer`)

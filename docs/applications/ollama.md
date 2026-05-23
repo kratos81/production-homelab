@@ -6,7 +6,7 @@ Ollama provides local LLM inference capabilities for the platform. It hosts mult
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Namespace**: `ai-platform`
 - **Endpoint**: `https://ollama.homelab.local` via NGINX ingress with TLS
 - **Internal Service**: `http://ollama.ai-platform.svc.cluster.local:11434`

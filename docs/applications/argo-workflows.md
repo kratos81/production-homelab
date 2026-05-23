@@ -6,7 +6,7 @@ Argo Workflows provides container-native workflow orchestration for ML pipelines
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Namespace**: `argo-workflows`
 - **UI Endpoint**: `https://argo-workflows.homelab.local` via NGINX ingress with TLS
 - **Artifact Repository**: MinIO S3 bucket `argo-workflows` at `minio.minio.svc.cluster.local:9000`

@@ -6,7 +6,7 @@ Milvus provides high-performance vector similarity search for AI/ML workloads. I
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Namespace**: `ai-platform`
 - **Mode**: Standalone (cluster mode disabled)
 - **Metadata Store**: Embedded etcd (1 replica)

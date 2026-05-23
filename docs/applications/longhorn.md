@@ -6,7 +6,7 @@ Longhorn provides distributed block storage for Kubernetes, offering persistent 
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Namespace**: `longhorn-system`
 - **UI Endpoint**: `https://longhorn.homelab.local` via NGINX ingress with TLS
 - **Default Replica Count**: 2 (data replicated across 2 nodes)
@@ -23,7 +23,7 @@ Longhorn provides distributed block storage for Kubernetes, offering persistent 
 - Restrict Longhorn UI access to cluster administrators only
 
 ### Performance
-- 2 replicas provide a good balance between redundancy and write performance on Harvester HCI
+- 2 replicas provide a good balance between redundancy and write performance on VMware vSphere / vCenter
 - `defaultDataLocality: best-effort` ensures reads are served from the local replica when possible
 - For write-intensive workloads, consider setting data locality to `disabled` to allow any replica to serve writes
 - Longhorn Manager resources (500m CPU / 512Mi) are sufficient for clusters with up to 100 volumes
@@ -88,4 +88,4 @@ kubectl -n longhorn-system delete volume.longhorn.io <volume-name> --grace-perio
 - Longhorn Docs: https://longhorn.io/docs/
 - Longhorn Helm Chart: https://github.com/longhorn/charts
 - Longhorn Best Practices: https://longhorn.io/docs/latest/best-practices/
-- Longhorn on Harvester: https://docs.harvesterhci.io/v1.2/advanced/longhorn
+- Longhorn on vSphere: https://docs.harvesterhci.io/v1.2/advanced/longhorn

@@ -2,11 +2,11 @@
 
 ## Overview
 
-GitLab Community Edition provides Git repository hosting, CI/CD pipelines, and code collaboration for the platform. It is deployed as a minimal installation with non-essential components disabled to conserve resources on the Harvester HCI cluster.
+GitLab Community Edition provides Git repository hosting, CI/CD pipelines, and code collaboration for the platform. It is deployed as a minimal installation with non-essential components disabled to conserve resources on the VMware vSphere / vCenter cluster.
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Edition**: Community Edition (CE)
 - **Domain**: `gitlab.homelab.local` via NGINX ingress with TLS (cert-manager `homelab-ca-issuer`)
 - **Storage**: Gitaly persistence on `local-path` StorageClass (20Gi), PostgreSQL on `local-path` (10Gi), Redis (5Gi)

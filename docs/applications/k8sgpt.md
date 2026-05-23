@@ -6,7 +6,7 @@ K8sGPT is an AI-powered Kubernetes diagnostics tool that scans clusters for issu
 
 ## Architecture on This Platform
 
-- **Cluster**: RKE2 Kubernetes on Harvester HCI
+- **Cluster**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Deployment**: Two-part ArgoCD GitOps setup:
   - Operator Helm chart with values from `application/values/k8sgpt-values.yaml`
   - K8sGPT Custom Resource from `application/values/k8sgpt-config/k8sgpt-cr.yaml`

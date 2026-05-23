@@ -6,7 +6,7 @@ Grafana Alloy is a vendor-neutral OpenTelemetry Collector distribution that repl
 
 ## Architecture on This Platform
 
-- **Cluster**: RKE2 Kubernetes on Harvester HCI
+- **Cluster**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Deployment**: Managed via ArgoCD GitOps from `application/values/alloy-values.yaml`
 - **Controller type**: DaemonSet (one pod per node for log collection)
 - **Pipelines configured**:

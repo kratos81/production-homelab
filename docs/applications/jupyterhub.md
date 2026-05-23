@@ -6,7 +6,7 @@ JupyterHub provides multi-user Jupyter notebook environments for data science an
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on VMware vSphere / vCenter
 - **Namespace**: `ai-platform`
 - **Endpoint**: `https://jupyter.homelab.local` via NGINX ingress with TLS
 - **User Image**: `quay.io/jupyter/scipy-notebook:latest`
