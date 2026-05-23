@@ -1,13 +1,13 @@
 # -------------------------------------------------------------------
-# VM Network — bridges VMs onto the 10.0.0.xx LAN (untagged/VLAN 1)
+# VM Network — uses existing Proxmox bridge
 # -------------------------------------------------------------------
-resource "harvester_network" "vm_lan" {
-  name      = "vm-lan"
-  namespace = var.vm_namespace
-
-  vlan_id = 0
-
-  cluster_network_name = "mgmt"
-
-  route_mode = "auto"
-}
+# Network is configured via var.proxmox_bridge (default: vmbr0)
+# For VLAN-tagged networking, set var.proxmox_vlan_tag
+#
+# Proxmox network bridges are configured at the host level:
+#   auto vmbr0
+#   iface vmbr0 inet static
+#       address 10.0.0.1/24
+#       bridge-ports eno1
+#       bridge-stp off
+#       bridge-fd 0

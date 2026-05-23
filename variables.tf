@@ -1,19 +1,49 @@
-variable "harvester_kubeconfig_path" {
-  description = "Path to Harvester kubeconfig file"
+variable "proxmox_endpoint" {
+  description = "Proxmox VE API endpoint URL"
   type        = string
-  default     = "~/.kube/harvester.yaml"
+  default     = "https://proxmox.homelab.local:8006"
 }
 
-variable "harvester_endpoint" {
-  description = "Harvester API endpoint URL"
+variable "proxmox_username" {
+  description = "Proxmox API username"
   type        = string
-  default     = "https://10.0.0.1"
+  default     = "root@pam"
 }
 
-variable "cluster_name" {
-  description = "Name of the RKE2 cluster"
+variable "proxmox_password" {
+  description = "Proxmox API password"
   type        = string
-  default     = "rke2-cluster-01"
+  sensitive   = true
+}
+
+variable "proxmox_node" {
+  description = "Proxmox node name to deploy VMs on"
+  type        = string
+  default     = "pve"
+}
+
+variable "proxmox_datastore" {
+  description = "Proxmox storage for VM disks"
+  type        = string
+  default     = "local-lvm"
+}
+
+variable "proxmox_iso_datastore" {
+  description = "Proxmox storage for ISO/cloud images and snippets"
+  type        = string
+  default     = "local"
+}
+
+variable "proxmox_bridge" {
+  description = "Proxmox network bridge for VMs"
+  type        = string
+  default     = "vmbr0"
+}
+
+variable "proxmox_vlan_tag" {
+  description = "VLAN tag for VM network (0 = untagged)"
+  type        = number
+  default     = 0
 }
 
 variable "kubernetes_version" {
@@ -28,64 +58,16 @@ variable "rke2_token" {
   sensitive   = true
 }
 
-variable "control_plane_count" {
-  description = "Number of control plane nodes"
-  type        = number
-  default     = 1
-}
-
-variable "worker_count" {
-  description = "Number of worker nodes"
-  type        = number
-  default     = 2
-}
-
-variable "control_plane_cpu" {
-  description = "CPUs for control plane VMs"
-  type        = number
-  default     = 4
-}
-
-variable "control_plane_memory" {
-  description = "Memory (MiB) for control plane VMs"
-  type        = number
-  default     = 8192
-}
-
-variable "worker_cpu" {
-  description = "CPUs for worker VMs"
-  type        = number
-  default     = 4
-}
-
-variable "worker_memory" {
-  description = "Memory (MiB) for worker VMs"
-  type        = number
-  default     = 8192
-}
-
 variable "disk_size" {
-  description = "Boot disk size (Gi) for control plane and management VMs"
-  type        = string
-  default     = "100Gi"
+  description = "Boot disk size (GB) for control plane VMs"
+  type        = number
+  default     = 100
 }
 
 variable "worker_disk_size" {
-  description = "Boot disk size (Gi) for worker VMs"
-  type        = string
-  default     = "100Gi"
-}
-
-variable "vm_namespace" {
-  description = "Harvester namespace for VMs"
-  type        = string
-  default     = "default"
-}
-
-variable "cp_static_ip" {
-  description = "Static IP for the first control plane node"
-  type        = string
-  default     = "10.0.0.100"
+  description = "Boot disk size (GB) for worker VMs"
+  type        = number
+  default     = 100
 }
 
 variable "ssh_public_key" {

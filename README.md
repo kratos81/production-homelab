@@ -1,6 +1,6 @@
 # DevSecOps Infrastructure Platform
 
-A complete, production-grade DevSecOps platform deployed on-premises using **Harvester HCI** as the hypervisor, **RKE2** as the CNCF-conformant Kubernetes distribution, and **ArgoCD** for GitOps-driven continuous delivery. Every component -- from the bare-metal VM provisioning through Terraform to the application CI/CD pipeline running on GitLab -- is defined as code in this repository.
+A complete, production-grade DevSecOps platform deployed on-premises using **Proxmox VE** as the hypervisor, **RKE2** as the CNCF-conformant Kubernetes distribution, and **ArgoCD** for GitOps-driven continuous delivery. Every component -- from the bare-metal VM provisioning through Terraform to the application CI/CD pipeline running on GitLab -- is defined as code in this repository.
 
 ---
 
@@ -29,11 +29,11 @@ A complete, production-grade DevSecOps platform deployed on-premises using **Har
 
 ## Project Overview
 
-This repository contains the Infrastructure-as-Code (IaC) and GitOps manifests for a fully self-hosted DevSecOps platform. The platform is designed to demonstrate an end-to-end secure software delivery lifecycle on a single on-premises Harvester HCI cluster.
+This repository contains the Infrastructure-as-Code (IaC) and GitOps manifests for a fully self-hosted DevSecOps platform. The platform is designed to demonstrate an end-to-end secure software delivery lifecycle on a single on-premises Proxmox VE cluster.
 
 **What this platform provides:**
 
-- **Infrastructure Provisioning** -- Terraform provisions Ubuntu 22.04 virtual machines on Harvester HCI with static IP addressing and cloud-init based RKE2 bootstrap.
+- **Infrastructure Provisioning** -- Terraform provisions Ubuntu 22.04 virtual machines on Proxmox VE with static IP addressing and cloud-init based RKE2 bootstrap.
 - **Kubernetes** -- An RKE2 cluster (1 control plane + 4 workers) with Cilium CNI for network policy enforcement and eBPF-based networking.
 - **GitOps** -- ArgoCD manages all cluster applications through an App-of-Apps pattern. Every application is defined declaratively and auto-synced from this Git repository.
 - **Full CI/CD** -- GitLab CE with GitLab Runner provides the pipeline engine. The sample application pipeline covers build, SCA, SAST, image signing, GitOps deployment, and DAST.
@@ -169,7 +169,7 @@ This repository contains the Infrastructure-as-Code (IaC) and GitOps manifests f
 
 ```mermaid
 graph TB
-    subgraph Harvester["Harvester HCI (10.0.0.1)"]
+    subgraph Harvester["Proxmox VE (10.0.0.1)"]
         subgraph Network["VM Network: vm-lan (VLAN 0 / mgmt)"]
             subgraph Rancher["Rancher Management Cluster"]
                 RM0["rancher-mgmt-0<br/>10.0.0.50<br/>4 vCPU / 16 GB"]
@@ -356,7 +356,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph HW["Bare Metal"]
-        Harvester["Harvester HCI<br/>10.0.0.1"]
+        Harvester["Proxmox VE<br/>10.0.0.1"]
     end
 
     subgraph Mgmt["Management Plane"]
@@ -554,7 +554,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph HW["Harvester HCI (10.0.0.1)<br/>80 vCPU / 756 GB RAM"]
+    subgraph HW["Proxmox VE (10.0.0.1)<br/>80 vCPU / 756 GB RAM"]
         subgraph Mgmt2["Rancher Management"]
             RancherVM["rancher-mgmt-0<br/>10.0.0.50<br/>4 vCPU / 16 GB"]
         end
@@ -597,7 +597,7 @@ flowchart TB
 
 | Technology | Role | Version / Chart Version | Namespace |
 |---|---|---|---|
-| **Harvester HCI** | Bare-metal hyperconverged infrastructure | Terraform provider >= 0.6.0 | N/A (hypervisor) |
+| **Proxmox VE** | Bare-metal hyperconverged infrastructure | Terraform provider >= 0.6.0 | N/A (hypervisor) |
 | **Terraform** | Infrastructure as Code | >= 1.5.0 | N/A (client-side) |
 | **Ubuntu** | VM operating system (cloud image) | 22.04 LTS | N/A (VM OS) |
 | **RKE2** | CNCF Kubernetes distribution | v1.28.13+rke2r1 | N/A (cluster) |
@@ -639,7 +639,7 @@ flowchart TB
 
 ### Infrastructure
 
-**Harvester HCI** -- An open-source hyperconverged infrastructure (HCI) platform built on Kubernetes. Provides VM management, storage, and networking on bare-metal servers. Used as the foundation layer to host all VMs that form the RKE2 clusters, eliminating the need for separate hypervisor and storage solutions.
+**Proxmox VE** -- An open-source hyperconverged infrastructure (HCI) platform built on Kubernetes. Provides VM management, storage, and networking on bare-metal servers. Used as the foundation layer to host all VMs that form the RKE2 clusters, eliminating the need for separate hypervisor and storage solutions.
 
 **Terraform** -- A declarative Infrastructure-as-Code (IaC) tool by HashiCorp. Provisions and manages Harvester VMs, networks, images, and SSH keys through the Harvester Terraform provider. All infrastructure is defined in `.tf` files, enabling reproducible, version-controlled deployments.
 
@@ -1068,7 +1068,7 @@ The sample app is a Go microservice built with the `net/http` standard library a
 | **Milvus (Attu)** | https://milvus.homelab.local | N/A | N/A (no auth) |
 | **OpenCost** | https://opencost.homelab.local | N/A | N/A (no auth) |
 | **Mattermost** | https://mattermost.homelab.local | Sign up on first visit | User-created |
-| **Harvester HCI** | https://10.0.0.1 | `admin` | `CHANGE_ME_USER_PASSWORD$$$` |
+| **Proxmox VE** | https://10.0.0.1 | `admin` | `CHANGE_ME_USER_PASSWORD$$$` |
 | **SSH to nodes** | `ssh -i ~/.ssh/id_rsa root@<IP>` | `root` | SSH key authentication |
 
 ### Additional Secrets
@@ -1131,7 +1131,7 @@ All services are accessible via HTTPS through MetalLB LoadBalancer IPs, routed b
 
 | Application | URL | Port | Notes |
 |---|---|---|---|
-| Harvester HCI | https://10.0.0.1 | 443 | Hypervisor management UI (direct access, not through MetalLB) |
+| Proxmox VE | https://10.0.0.1 | 443 | Hypervisor management UI (direct access, not through MetalLB) |
 
 ---
 
@@ -1232,7 +1232,7 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
 ### Prerequisites
 
-- Harvester HCI cluster running and accessible at `https://10.0.0.1`
+- Proxmox VE cluster running and accessible at `https://10.0.0.1`
 - Harvester kubeconfig saved to `~/.kube/harvester.yaml`
 - Terraform >= 1.5.0 installed
 - Helm 3.x installed
