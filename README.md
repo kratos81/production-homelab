@@ -60,7 +60,7 @@ This repository contains the Infrastructure-as-Code (IaC) and GitOps manifests f
 
 ```
 +===========================================================================+
-|                        PROXMOX VE  (10.0.0.1)                      |
+|                        HARVESTER HCI  (10.0.0.1)                      |
 |                     Bare-Metal Hyperconverged Infrastructure              |
 |  +---------------------------------------------------------------------+  |
 |  |                                                                     |  |
@@ -165,432 +165,213 @@ This repository contains the Infrastructure-as-Code (IaC) and GitOps manifests f
 
 ## Architecture Diagrams
 
-### Infrastructure Topology
+### Infrastructure
 
 ```mermaid
 graph TB
-    subgraph Proxmox["Proxmox VE (10.0.0.1)"]
-        subgraph Network["VM Network: vm-lan (VLAN 0 / mgmt)"]
-            subgraph Rancher["Rancher Management Cluster"]
-                RM0["rancher-mgmt-0<br/>10.0.0.50<br/>4 vCPU / 16 GB"]
-            end
-
-            subgraph Cluster02["Workload Cluster: rke2-cluster-02"]
-                CP0["Control Plane<br/>10.0.0.10<br/>8 vCPU / 16 GB"]
-                W0["Worker 0<br/>10.0.0.11<br/>8 vCPU / 32 GB"]
-                W1["Worker 1<br/>10.0.0.12<br/>8 vCPU / 32 GB"]
-                W2["Worker 2<br/>10.0.0.13<br/>8 vCPU / 32 GB"]
-                W3["Worker 3<br/>10.0.0.14<br/>8 vCPU / 32 GB"]
-            end
-        end
+    subgraph Hypervisor["Proxmox VE"]
+        direction TB
+        CP["Control Plane<br/>10.0.0.10 · 12 vCPU · 48 GB"]
+        W0["Worker 0<br/>10.0.0.11 · 8 vCPU · 32 GB"]
+        W1["Worker 1<br/>10.0.0.12 · 8 vCPU · 32 GB"]
+        W2["Worker 2<br/>10.0.0.13 · 8 vCPU · 32 GB"]
+        W3["Worker 3<br/>10.0.0.14 · 8 vCPU · 32 GB"]
     end
 
-    RM0 -->|"manages via<br/>Rancher Agent"| Cluster02
+    Terraform["Terraform<br/>proxmox provider"]
+    Client["Client"] -->|"*.homelab.local<br/>10.0.1.200"| Ingress
+    Terraform -->|"provisions"| Hypervisor
 
-    Client["Client (Mac)"] -->|"10.0.1.221<br/>rancher.homelab.local"| RM0
-    Client -->|"10.0.1.200<br/>*.homelab.local"| CP0
-
-    subgraph LB["MetalLB Pools"]
-        Pool1["Workload: 10.0.1.200-220"]
-        Pool2["Rancher: 10.0.1.221-225"]
+    subgraph K8s["RKE2 Cluster · v1.28"]
+        Ingress["ingress-nginx<br/>MetalLB 10.0.1.200"]
     end
 
-    CP0 --- Pool1
-    RM0 --- Pool2
+    Hypervisor --> K8s
 
-    style PVE fill:#1a1a2e,color:#fff
-    style Rancher fill:#2d6a4f,color:#fff
-    style Cluster02 fill:#1b4965,color:#fff
-    style Network fill:#264653,color:#fff
+    style Hypervisor fill:#1a1a2e,color:#c9d1d9,stroke:#30363d
+    style K8s fill:#161b22,color:#c9d1d9,stroke:#30363d
+    style CP fill:#1b4965,color:#fff,stroke:none
+    style W0 fill:#264653,color:#fff,stroke:none
+    style W1 fill:#264653,color:#fff,stroke:none
+    style W2 fill:#264653,color:#fff,stroke:none
+    style W3 fill:#264653,color:#fff,stroke:none
 ```
 
-### DevSecOps Application Stack
+### Platform Stack
 
 ```mermaid
-graph TB
-    subgraph Networking["Networking Layer"]
-        MetalLB["MetalLB<br/>(L2 LB, 10.0.1.200-220)"]
-        Ingress["ingress-nginx<br/>(Ingress Controller)"]
-        CertMgr["cert-manager<br/>(TLS Certificates)"]
-        Cilium["Cilium<br/>(CNI / eBPF)"]
+graph LR
+    subgraph Net["Networking"]
+        MetalLB["MetalLB"]
+        Nginx["ingress-nginx"]
+        CertMgr["cert-manager"]
+        DNS["external-dns"]
     end
 
-    subgraph GitOps["GitOps & CI/CD"]
-        ArgoCD["ArgoCD<br/>(Continuous Delivery)"]
-        GitLab["GitLab CE<br/>(Source Code)"]
-        Runner["GitLab Runner<br/>(CI Executor)"]
+    subgraph Identity["Identity & Secrets"]
+        KC["Keycloak<br/>SSO / OIDC"]
+        Vault["Vault"]
     end
 
-    subgraph Security["Security"]
-        Vault["HashiCorp Vault<br/>(Secrets)"]
-        Keycloak["Keycloak<br/>(SSO / OIDC)"]
-        NeuVector["NeuVector<br/>(Runtime Security)"]
-        Harbor["Harbor<br/>(Registry + Trivy)"]
+    subgraph CICD["CI/CD"]
+        Argo["ArgoCD"]
+        GL["GitLab"]
+        Runner["Runner"]
+        Harbor["Harbor"]
     end
 
-    subgraph Observability["Observability"]
-        Prometheus["Prometheus<br/>(Metrics)"]
-        Grafana["Grafana<br/>(Dashboards)"]
-        Loki["Loki<br/>(Logs)"]
-        Promtail["Promtail<br/>(Log Shipper)"]
+    subgraph Sec["Security"]
+        NV["NeuVector"]
+        Tet["Tetragon"]
+        Kyv["Kyverno"]
     end
 
-    subgraph App["Workloads"]
-        SampleApp["Sample App<br/>(Go Microservice)"]
+    subgraph Obs["Observability"]
+        Prom["Prometheus"]
+        Graf["Grafana"]
+        Loki["Loki"]
+        Tempo["Tempo"]
     end
 
-    MetalLB --> Ingress
-    Ingress --> ArgoCD & GitLab & Harbor & Vault & Keycloak & NeuVector & SampleApp
-    CertMgr -->|"TLS certs"| Ingress
-    ArgoCD -->|"deploys all apps"| Security & Observability & App & GitOps
-    Keycloak -->|"OIDC"| ArgoCD
-    Runner -->|"pushes images"| Harbor
-    Runner -->|"GitOps commit"| ArgoCD
-    Promtail -->|"ships logs"| Loki
-    Prometheus --> Grafana
-    Loki --> Grafana
+    subgraph AI["AI / ML"]
+        Ollama["Ollama"]
+        MLflow["MLflow"]
+        JHub["JupyterHub"]
+        Milvus["Milvus"]
+    end
 
-    style Networking fill:#1b4965,color:#fff
-    style GitOps fill:#2d6a4f,color:#fff
-    style Security fill:#6b2737,color:#fff
-    style Observability fill:#5a4fcf,color:#fff
-    style App fill:#b07d2b,color:#fff
+    KC -->|OIDC| Argo & GL & Graf & Harbor
+    Runner -->|push| Harbor
+    Runner -->|GitOps| Argo
+    Prom & Loki & Tempo --> Graf
+
+    style Net fill:#264653,color:#fff,stroke:none
+    style Identity fill:#6b2737,color:#fff,stroke:none
+    style CICD fill:#2d6a4f,color:#fff,stroke:none
+    style Sec fill:#4a1942,color:#fff,stroke:none
+    style Obs fill:#5a4fcf,color:#fff,stroke:none
+    style AI fill:#b07d2b,color:#fff,stroke:none
 ```
 
-### CI/CD Pipeline Flow
+### DevSecOps Pipeline
 
 ```mermaid
 flowchart LR
-    subgraph build["Build"]
-        Kaniko["Kaniko<br/>Build & Push<br/>to Harbor"]
-    end
+    A["Lint<br/>Hadolint<br/>+ AI Review"] --> B["Build<br/>Kaniko<br/>→ Harbor"]
+    B --> C["Scan<br/>Trivy · Semgrep<br/>Gitleaks · NeuVector"]
+    C --> D["Gate<br/>Compliance<br/>Policy Check"]
+    D --> E["Sign<br/>Cosign<br/>+ SLSA"]
+    E --> F["Test<br/>Ephemeral NS<br/>+ DAST"]
+    F --> G["Deploy<br/>GitOps Push<br/>→ ArgoCD"]
+    G --> H["Verify<br/>Health Check<br/>+ AI Predict"]
+    H --> I["Report<br/>Metrics · HTML<br/>Mattermost"]
 
-    subgraph scan["Scan (parallel)"]
-        SCA["Trivy<br/>SCA + SBOM"]
-        SAST["Semgrep<br/>SAST"]
-    end
-
-    subgraph sign["Sign"]
-        Cosign["Cosign<br/>Image Signing"]
-    end
-
-    subgraph deploy["Deploy"]
-        GitOps["GitOps Commit<br/>Update image tag<br/>ArgoCD auto-sync"]
-    end
-
-    subgraph dast["DAST"]
-        DAST_Check["Connectivity<br/>Verification"]
-    end
-
-    subgraph metrics["Metrics"]
-        Report["Pipeline<br/>Metadata Report"]
-    end
-
-    Kaniko --> SCA & SAST
-    SCA & SAST --> Cosign
-    Cosign --> GitOps
-    GitOps --> DAST_Check
-    DAST_Check --> Report
-
-    style build fill:#2d6a4f,color:#fff
-    style scan fill:#1b4965,color:#fff
-    style sign fill:#6b2737,color:#fff
-    style deploy fill:#5a4fcf,color:#fff
-    style dast fill:#b07d2b,color:#fff
-    style metrics fill:#4a4a4a,color:#fff
+    style A fill:#264653,color:#fff,stroke:none
+    style B fill:#2d6a4f,color:#fff,stroke:none
+    style C fill:#1b4965,color:#fff,stroke:none
+    style D fill:#6b2737,color:#fff,stroke:none
+    style E fill:#4a1942,color:#fff,stroke:none
+    style F fill:#b07d2b,color:#fff,stroke:none
+    style G fill:#5a4fcf,color:#fff,stroke:none
+    style H fill:#2d6a4f,color:#fff,stroke:none
+    style I fill:#4a4a4a,color:#fff,stroke:none
 ```
 
-### Client Access Architecture
-
-```mermaid
-flowchart TB
-    subgraph Mac["Developer Mac"]
-        Browser["Browser<br/>(HTTPS :443)"]
-        Kubectl["kubectl / Lens / Helm"]
-        Tunnel["SSH Tunnel<br/>localhost:6443 -> CP:6443"]
-        PF_G["port-forward :3000"]
-        PF_P["port-forward :9090"]
-    end
-
-    subgraph Hosts["/etc/hosts DNS"]
-        H1["10.0.1.200 -> *.homelab.local"]
-        H2["10.0.1.221 -> rancher.homelab.local"]
-    end
-
-    subgraph Workload["Workload Cluster (10.0.0.10-107)"]
-        Ingress["ingress-nginx<br/>MetalLB: 10.0.1.200"]
-        K8sAPI["K8s API :6443"]
-        Grafana["Grafana :3000"]
-        Prometheus["Prometheus :9090"]
-
-        subgraph Apps["Ingress-Routed Apps (:443)"]
-            ArgoCD["ArgoCD"]
-            Vault["Vault"]
-            Harbor["Harbor"]
-            GitLab["GitLab"]
-            Keycloak["Keycloak"]
-            NeuVector["NeuVector"]
-            SampleApp["Sample App"]
-        end
-    end
-
-    subgraph RancherCluster["Rancher Cluster (10.0.0.50)"]
-        RancherIngress["ingress-nginx<br/>MetalLB: 10.0.1.221"]
-        RancherUI["Rancher UI"]
-    end
-
-    Browser -->|"HTTPS via /etc/hosts"| H1 --> Ingress --> Apps
-    Browser -->|"HTTPS via /etc/hosts"| H2 --> RancherIngress --> RancherUI
-    Kubectl -->|"localhost:6443"| Tunnel -->|"SSH to root@10.0.0.10"| K8sAPI
-    Kubectl --> PF_G -->|"through tunnel"| Grafana
-    Kubectl --> PF_P -->|"through tunnel"| Prometheus
-
-    style Mac fill:#1a1a2e,color:#fff
-    style Workload fill:#1b4965,color:#fff
-    style RancherCluster fill:#2d6a4f,color:#fff
-    style Apps fill:#264653,color:#fff
-```
-
-### Complete Platform Overview
-
-```mermaid
-flowchart TB
-    subgraph HW["Bare Metal"]
-        Proxmox["Proxmox VE<br/>10.0.0.1"]
-    end
-
-    subgraph Mgmt["Management Plane"]
-        Rancher["Rancher<br/>rancher.homelab.local<br/>admin / RancherAdmin2024"]
-    end
-
-    subgraph Cluster["Workload Cluster (rke2-cluster-02)"]
-        subgraph Net["Networking"]
-            Cilium["Cilium CNI"]
-            MetalLB["MetalLB<br/>10.0.1.200-220"]
-            IngressNginx["ingress-nginx"]
-            CertManager["cert-manager<br/>homelab.local CA"]
-        end
-
-        subgraph CICD["CI/CD & GitOps"]
-            ArgoCD2["ArgoCD<br/>argocd.homelab.local<br/>admin / CHANGE_ME_ARGOCD_ADMIN_PASSWORD"]
-            GitLab2["GitLab CE<br/>gitlab.homelab.local<br/>root / rhCK9N...mCkD"]
-            Runner2["GitLab Runner"]
-        end
-
-        subgraph Sec["Security & Identity"]
-            Vault2["Vault<br/>vault.homelab.local<br/>Token: CHANGE_ME"]
-            Keycloak2["Keycloak<br/>keycloak.homelab.local<br/>admin / CHANGE_ME_KEYCLOAK_ADMIN"]
-            Harbor2["Harbor<br/>harbor.homelab.local<br/>admin / CHANGE_ME_HARBOR_ADMIN"]
-            NeuVector2["NeuVector<br/>neuvector.homelab.local<br/>admin / admin"]
-        end
-
-        subgraph Obs["Observability"]
-            Prometheus2["Prometheus<br/>localhost:9090"]
-            Grafana2["Grafana<br/>grafana.homelab.local<br/>SSO via Keycloak"]
-            Loki2["Loki + Promtail"]
-        end
-
-        subgraph Work["Workloads"]
-            App2["Sample App<br/>sample-app.homelab.local"]
-        end
-    end
-
-    PVE -->|"provisions VMs"| Mgmt & Cluster
-    Rancher -->|"manages"| Cluster
-    ArgoCD2 -->|"deploys"| Sec & Obs & Work & Net
-    Runner2 -->|"build & push"| Harbor2
-    Runner2 -->|"GitOps commit"| ArgoCD2
-    Keycloak2 -->|"SSO/OIDC"| ArgoCD2 & Grafana2 & Harbor2 & GitLab2
-    Prometheus2 --> Grafana2
-    Loki2 --> Grafana2
-
-    style HW fill:#4a4a4a,color:#fff
-    style Mgmt fill:#2d6a4f,color:#fff
-    style Cluster fill:#1b4965,color:#fff
-    style Net fill:#264653,color:#fff
-    style CICD fill:#2d6a4f,color:#fff
-    style Sec fill:#6b2737,color:#fff
-    style Obs fill:#5a4fcf,color:#fff
-    style Work fill:#b07d2b,color:#fff
-```
-
-### eBPF Security and Observability Pipeline
-
-```mermaid
-flowchart TB
-    subgraph Kernel["Linux Kernel (eBPF)"]
-        Tetragon["Tetragon<br/>Process + File + Network<br/>Enforcement"]
-        Cilium["Cilium CNI<br/>Network Policy + Service Mesh"]
-    end
-
-    subgraph Collect["Telemetry Collection"]
-        Alloy["Grafana Alloy<br/>(DaemonSet on every node)"]
-        OTelCollector["OTel Collector<br/>(OTLP gRPC + HTTP receiver)"]
-    end
-
-    subgraph Backends["Observability Backends"]
-        Prometheus2["Prometheus<br/>Metrics Store"]
-        Loki2["Loki<br/>Log Aggregation"]
-        Tempo2["Tempo<br/>Distributed Traces"]
-    end
-
-    subgraph Viz["Visualization & Alerting"]
-        Grafana2["Grafana<br/>grafana.homelab.local"]
-        AlertManager["AlertManager<br/>-> Mattermost #sre-alerts"]
-    end
-
-    subgraph Apps["Application Pods"]
-        AutoInstr["Auto-Instrumented Apps<br/>(OTel SDK injected via annotation)"]
-        NonInstr["Standard Pods<br/>(logs only)"]
-    end
-
-    Tetragon -->|"security events"| Alloy
-    Cilium -->|"network flow logs"| Alloy
-    NonInstr -->|"stdout/stderr"| Alloy
-    AutoInstr -->|"OTLP traces + metrics"| OTelCollector
-    Alloy -->|"logs"| Loki2
-    Alloy -->|"metrics"| Prometheus2
-    OTelCollector -->|"traces"| Tempo2
-    OTelCollector -->|"metrics"| Prometheus2
-    OTelCollector -->|"logs (otlphttp)"| Loki2
-    Prometheus2 --> Grafana2
-    Loki2 --> Grafana2
-    Tempo2 --> Grafana2
-    Prometheus2 -->|"alerts"| AlertManager
-
-    style Kernel fill:#6b2737,color:#fff
-    style Collect fill:#264653,color:#fff
-    style Backends fill:#5a4fcf,color:#fff
-    style Viz fill:#2d6a4f,color:#fff
-    style Apps fill:#b07d2b,color:#fff
-```
-
-### Supply Chain Security Flow
+### Supply Chain Security
 
 ```mermaid
 flowchart LR
-    subgraph Dev["Developer"]
-        Code["Push Code<br/>to GitLab"]
+    Dev["Developer<br/>git push"] --> CI["GitLab CI"]
+
+    subgraph CI["CI Pipeline"]
+        Build["Build"] --> Scan["Scan<br/>Trivy + Semgrep<br/>+ Gitleaks"]
+        Scan --> Sign["Cosign Sign<br/>+ SBOM<br/>+ SLSA Provenance"]
+        Sign --> Push["Push to<br/>Harbor"]
     end
 
-    subgraph CI["GitLab CI Pipeline"]
-        Build["Build Image<br/>(Kaniko)"]
-        SCA["SCA<br/>(Trivy SBOM)"]
-        SAST["SAST<br/>(Semgrep)"]
-        Sign["Sign Image<br/>(Cosign keyless)"]
-        Push["Push to<br/>Harbor Registry"]
+    Push --> Admit
+
+    subgraph Admit["Admission Control"]
+        Kyv["Kyverno"]
+        Kyv --> Sig["Verify<br/>Signature"]
+        Kyv --> Reg["Check<br/>Registry"]
     end
 
-    subgraph Admission["Kubernetes Admission Control"]
-        Kyverno["Kyverno Webhook"]
-        VerifySig["Verify Cosign<br/>Signature"]
-        CheckReg["Check Registry<br/>Allowlist"]
-        CheckProv["Check SLSA<br/>Provenance"]
+    Admit --> Run
+
+    subgraph Run["Runtime"]
+        Deploy["ArgoCD<br/>Deploy"]
+        Tet["Tetragon<br/>eBPF"]
+        NV["NeuVector<br/>Firewall"]
     end
 
-    subgraph Runtime["Runtime Security"]
-        Deploy["Deploy to K8s<br/>(via ArgoCD)"]
-        Tetragon2["Tetragon<br/>eBPF Process Monitor"]
-        NeuVector2["NeuVector<br/>Container Firewall"]
-    end
-
-    Code --> Build --> SCA & SAST --> Sign --> Push
-    Push -->|"ArgoCD GitOps sync"| Kyverno
-    Kyverno --> VerifySig & CheckReg & CheckProv
-    VerifySig & CheckReg & CheckProv -->|"admitted"| Deploy
-    Deploy --> Tetragon2 & NeuVector2
-
-    style Dev fill:#1a1a2e,color:#fff
-    style CI fill:#2d6a4f,color:#fff
-    style Admission fill:#6b2737,color:#fff
-    style Runtime fill:#1b4965,color:#fff
+    style CI fill:#2d6a4f,color:#fff,stroke:none
+    style Admit fill:#6b2737,color:#fff,stroke:none
+    style Run fill:#1b4965,color:#fff,stroke:none
 ```
 
-### Progressive Delivery with Argo Rollouts
+### Observability
 
 ```mermaid
 flowchart TB
-    subgraph GitOps["GitOps Trigger"]
-        ArgoCD3["ArgoCD detects<br/>Rollout manifest change"]
+    subgraph Sources["Data Sources"]
+        Apps["App Pods<br/>OTel auto-instrumented"]
+        Kernel["eBPF<br/>Tetragon + Cilium"]
+        Nodes["Node metrics<br/>node-exporter"]
     end
 
-    subgraph Controller["Argo Rollouts Controller"]
-        Canary["Canary Strategy<br/>(configurable steps)"]
-        Analysis["AnalysisRun<br/>(Prometheus queries)"]
+    subgraph Collection["Collection"]
+        Alloy["Alloy<br/>DaemonSet"]
+        OTel["OTel Collector"]
     end
 
-    subgraph Traffic["Traffic Splitting (ingress-nginx)"]
-        Stable["Stable ReplicaSet (v1)<br/>90% traffic"]
-        Preview["Canary ReplicaSet (v2)<br/>10% traffic"]
+    subgraph Storage["Backends"]
+        Prom["Prometheus<br/>metrics"]
+        Loki["Loki<br/>logs"]
+        Tempo["Tempo<br/>traces"]
     end
 
-    subgraph Metrics["Automated Analysis"]
-        ErrorRate["Error Rate < 1%"]
-        Latency["P99 Latency < 500ms"]
-        Custom["Custom Metrics<br/>(app-specific)"]
+    subgraph Output["Output"]
+        Grafana["Grafana"]
+        Alert["Alertmanager<br/>→ Mattermost"]
     end
 
-    subgraph Outcome["Outcome"]
-        Promote["Promote v2<br/>100% traffic"]
-        Rollback["Auto-Rollback to v1<br/>on failure"]
-    end
+    Apps -->|traces| OTel
+    Apps -->|logs| Alloy
+    Kernel --> Alloy
+    Nodes --> Alloy
+    Alloy --> Prom & Loki
+    OTel --> Prom & Loki & Tempo
+    Prom & Loki & Tempo --> Grafana
+    Prom --> Alert
 
-    ArgoCD3 -->|"sync"| Canary
-    Canary -->|"create canary pods"| Preview
-    Canary -->|"maintain stable pods"| Stable
-    Canary -->|"trigger analysis"| Analysis
-    Analysis -->|"query Prometheus"| ErrorRate & Latency & Custom
-    ErrorRate & Latency & Custom -->|"all pass"| Promote
-    ErrorRate & Latency & Custom -->|"any fail"| Rollback
-
-    style GitOps fill:#2d6a4f,color:#fff
-    style Controller fill:#5a4fcf,color:#fff
-    style Traffic fill:#264653,color:#fff
-    style Metrics fill:#b07d2b,color:#fff
-    style Outcome fill:#1b4965,color:#fff
+    style Sources fill:#b07d2b,color:#fff,stroke:none
+    style Collection fill:#264653,color:#fff,stroke:none
+    style Storage fill:#5a4fcf,color:#fff,stroke:none
+    style Output fill:#2d6a4f,color:#fff,stroke:none
 ```
 
-### Multi-Cluster Architecture
+### SSO Integration
 
 ```mermaid
-flowchart TB
-    subgraph HW["Proxmox VE (10.0.0.1)<br/>80 vCPU / 756 GB RAM"]
-        subgraph Mgmt2["Rancher Management"]
-            RancherVM["rancher-mgmt-0<br/>10.0.0.50<br/>4 vCPU / 16 GB"]
-        end
+flowchart LR
+    KC["Keycloak<br/>Realm: homelab"]
 
-        subgraph Prod["Production: rke2-cluster-02"]
-            ProdCP["CP: 10.0.0.10<br/>8 vCPU / 16 GB / 100 Gi"]
-            ProdW["Workers: .104-.107<br/>4x 8 vCPU / 32 GB / 100 Gi"]
-        end
+    KC -->|OIDC| ArgoCD["ArgoCD"]
+    KC -->|OIDC| Grafana["Grafana"]
+    KC -->|OIDC| Harbor["Harbor"]
+    KC -->|OIDC| GitLab["GitLab"]
+    KC -->|OIDC| MM["Mattermost"]
+    KC -->|OIDC| JHub["JupyterHub"]
 
-        subgraph Student["Student Cluster"]
-            StudCP["CP: 10.0.0.120<br/>8 vCPU / 16 GB / 100 Gi"]
-            StudW["Workers: .121-.124<br/>4x 8 vCPU / 32 GB / 100 Gi"]
-        end
-
-        subgraph Practice["Practice Environments"]
-            K3sVM["k3s-practice<br/>10.0.0.21<br/>Fedora 41 / SELinux<br/>4 vCPU / 8 GB / 60 Gi"]
-        end
-    end
-
-    subgraph Remote["Remote Access"]
-        Tailscale["Tailscale<br/>Subnet Router"]
-        Mac["Developer Mac<br/>via Tailscale VPN"]
-    end
-
-    RancherVM -->|"manages"| Prod & Student
-    Mac -->|"Tailscale mesh"| Tailscale
-    Tailscale -->|"10.0.0.0/24"| Prod & Student & Practice & Mgmt2
-
-    style HW fill:#4a4a4a,color:#fff
-    style Mgmt2 fill:#2d6a4f,color:#fff
-    style Prod fill:#1b4965,color:#fff
-    style Student fill:#5a4fcf,color:#fff
-    style Practice fill:#b07d2b,color:#fff
-    style Remote fill:#264653,color:#fff
+    style KC fill:#6b2737,color:#fff,stroke:none
+    style ArgoCD fill:#264653,color:#fff,stroke:none
+    style Grafana fill:#264653,color:#fff,stroke:none
+    style Harbor fill:#264653,color:#fff,stroke:none
+    style GitLab fill:#264653,color:#fff,stroke:none
+    style MM fill:#264653,color:#fff,stroke:none
+    style JHub fill:#264653,color:#fff,stroke:none
 ```
-
 ---
 
 ## Technology Stack
@@ -639,9 +420,9 @@ flowchart TB
 
 ### Infrastructure
 
-**Proxmox VE** -- An open-source open-source virtualization platform based on KVM and LXC. Provides VM management, storage, and networking on bare-metal servers. Used as the foundation layer to host all VMs that form the RKE2 clusters, eliminating the need for separate hypervisor and storage solutions.
+**Proxmox VE** -- An open-source hyperconverged infrastructure (HCI) platform built on Kubernetes. Provides VM management, storage, and networking on bare-metal servers. Used as the foundation layer to host all VMs that form the RKE2 clusters, eliminating the need for separate hypervisor and storage solutions.
 
-**Terraform** -- A declarative Infrastructure-as-Code (IaC) tool by HashiCorp. Provisions and manages Proxmox VMs, cloud-init snippets, and storage through the Proxmox Terraform provider (bpg/proxmox). All infrastructure is defined in `.tf` files, enabling reproducible, version-controlled deployments.
+**Terraform** -- A declarative Infrastructure-as-Code (IaC) tool by HashiCorp. Provisions and manages Harvester VMs, networks, images, and SSH keys through the Harvester Terraform provider. All infrastructure is defined in `.tf` files, enabling reproducible, version-controlled deployments.
 
 **RKE2** -- Rancher Kubernetes Engine 2, a CNCF-conformant Kubernetes distribution focused on security and compliance. Deployed on all VMs via cloud-init. The workload cluster runs 1 control plane + 4 workers; the Rancher management cluster runs a single node. RKE2 provides built-in etcd, containerd, and FIPS-compliant binaries.
 
@@ -907,7 +688,7 @@ The Rancher management VM is defined in `rancher-cluster.tf` and provisioned alo
 
 ```bash
 terraform plan   # Shows 1 new VM: rancher-mgmt-0
-terraform apply  # Creates the VM on Proxmox
+terraform apply  # Creates the VM on Harvester
 ```
 
 ### Bootstrap Steps (after VM is ready)
@@ -1131,7 +912,7 @@ All services are accessible via HTTPS through MetalLB LoadBalancer IPs, routed b
 
 | Application | URL | Port | Notes |
 |---|---|---|---|
-| Proxmox VE | https://10.0.0.1 | 443 | Proxmox management UI (direct access) |
+| Proxmox VE | https://10.0.0.1 | 443 | Hypervisor management UI (direct access, not through MetalLB) |
 
 ---
 
@@ -1232,8 +1013,8 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
 ### Prerequisites
 
-- Proxmox VE cluster running and accessible at `root@pam`
-- Proxmox connection saved to `https://proxmox.homelab.local:8006`
+- Proxmox VE cluster running and accessible at `https://10.0.0.1`
+- Harvester kubeconfig saved to `~/.kube/harvester.yaml`
 - Terraform >= 1.5.0 installed
 - Helm 3.x installed
 - kubectl installed
@@ -1244,13 +1025,13 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 ```bash
 cd /path/to/infra
 
-# Initialize Terraform (downloads the Proxmox provider)
+# Initialize Terraform (downloads the Harvester provider)
 terraform init
 
 # Review the plan
 terraform plan
 
-# Apply -- creates 1 CP + 4 worker VMs on Proxmox
+# Apply -- creates 1 CP + 4 worker VMs + 1 Rancher management VM on Harvester
 terraform apply
 ```
 
@@ -1323,8 +1104,8 @@ All variables are defined in `variables.tf` with sensible defaults. Override the
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
-| `proxmox_endpoint` | string | `https://proxmox.homelab.local:8006` | Proxmox VE API endpoint URL |
-| `proxmox_username` | string | `root@pam` | Proxmox API username |
+| `harvester_kubeconfig_path` | string | `~/.kube/harvester.yaml` | Path to the Harvester cluster kubeconfig file |
+| `harvester_endpoint` | string | `https://10.0.0.1` | Harvester API endpoint URL |
 | `cluster_name` | string | `rke2-cluster-01` | Name of the RKE2 cluster (used for tagging) |
 | `kubernetes_version` | string | `v1.28.13+rke2r1` | RKE2 Kubernetes version to install on all nodes |
 | `rke2_token` | string (sensitive) | -- | Shared secret token for RKE2 node registration |
@@ -1335,7 +1116,7 @@ All variables are defined in `variables.tf` with sensible defaults. Override the
 | `worker_cpu` | number | `4` | vCPU count for worker VMs |
 | `worker_memory` | number | `8192` | Memory in MiB for worker VMs |
 | `disk_size` | string | `40Gi` | Boot disk size for all VMs |
-| `vm_namespace` | string | `default` | Proxmox namespace where VMs are created |
+| `vm_namespace` | string | `default` | Harvester namespace where VMs are created |
 | `cp_static_ip` | string | `10.0.0.100` | Static IP for the first control plane node |
 | `ssh_public_key` | string | `""` | SSH public key injected into all VMs for root access |
 
@@ -1479,8 +1260,8 @@ infra/
 |-- .gitignore                             # Ignores .terraform/, *.tfstate, terraform.tfvars
 |
 |-- # ===== TERRAFORM (root) - Cluster 02 =====
-|-- providers.tf                           # Proxmox provider configuration
-|-- versions.tf                            # Terraform >= 1.5.0, Proxmox provider >= 0.6.0
+|-- providers.tf                           # Harvester provider configuration
+|-- versions.tf                            # Terraform >= 1.5.0, Harvester provider >= 0.6.0
 |-- variables.tf                           # All Terraform input variables with defaults
 |-- terraform.tfvars                       # Variable overrides (git-ignored, contains secrets)
 |-- main.tf                                # Ubuntu 22.04 image + SSH key resources
@@ -1553,12 +1334,12 @@ infra/
 |   |-- .gitlab-ci.yml                    # Full DevSecOps pipeline (7 stages)
 |
 |-- # ===== LEGACY / ALTERNATE ENVIRONMENTS =====
-|-- proxmox/                            # Alternate Proxmox Terraform config (older approach)
+|-- harvester/                            # Alternate Harvester Terraform config (older approach)
 |   |-- main.tf                           # Dev + Sandbox clusters via null_resource/kubectl
 |   |-- terraform.tfvars
 |
 |-- dev/                                  # Dev environment Terraform (simpler VM provisioning)
-|   |-- main.tf                           # proxmox_virtual_environment_vm resources
+|   |-- main.tf                           # harvester_virtualmachine resources
 |   |-- variables.tf
 |   |-- terraform.tfvars
 ```
