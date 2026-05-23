@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-DevSecOps infrastructure platform deployed on-premises using Harvester HCI, RKE2 Kubernetes, and ArgoCD GitOps. All 30+ applications are managed declaratively from this repository.
+DevSecOps infrastructure platform deployed on-premises using VMware vSphere / vCenter, RKE2 Kubernetes, and ArgoCD GitOps. All 30+ applications are managed declaratively from this repository.
 
 ## Repository Structure
 

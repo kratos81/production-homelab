@@ -1,13 +1,9 @@
 # -------------------------------------------------------------------
-# VM Network — bridges VMs onto the 10.0.0.xx LAN (untagged/VLAN 1)
+# VM Network — uses existing vSphere port group
 # -------------------------------------------------------------------
-resource "harvester_network" "vm_lan" {
-  name      = "vm-lan"
-  namespace = var.vm_namespace
-
-  vlan_id = 0
-
-  cluster_network_name = "mgmt"
-
-  route_mode = "auto"
-}
+# Network is referenced via data source in main.tf
+# Configure the port group name in var.vsphere_network
+# Default: "VM Network"
+#
+# For VLAN-backed networking, create a distributed port group in
+# vCenter with the desired VLAN ID and reference it here.

@@ -1,19 +1,54 @@
-variable "harvester_kubeconfig_path" {
-  description = "Path to Harvester kubeconfig file"
+variable "vsphere_server" {
+  description = "vCenter Server FQDN or IP"
   type        = string
-  default     = "~/.kube/harvester.yaml"
 }
 
-variable "harvester_endpoint" {
-  description = "Harvester API endpoint URL"
+variable "vsphere_user" {
+  description = "vCenter username"
   type        = string
-  default     = "https://10.0.0.1"
+  default     = "administrator@vsphere.local"
 }
 
-variable "cluster_name" {
-  description = "Name of the RKE2 cluster"
+variable "vsphere_password" {
+  description = "vCenter password"
   type        = string
-  default     = "rke2-cluster-01"
+  sensitive   = true
+}
+
+variable "vsphere_datacenter" {
+  description = "vSphere datacenter name"
+  type        = string
+  default     = "Datacenter"
+}
+
+variable "vsphere_cluster" {
+  description = "vSphere cluster name"
+  type        = string
+  default     = "Cluster"
+}
+
+variable "vsphere_datastore" {
+  description = "vSphere datastore for VM disks"
+  type        = string
+  default     = "datastore1"
+}
+
+variable "vsphere_network" {
+  description = "vSphere network/port group for VMs"
+  type        = string
+  default     = "VM Network"
+}
+
+variable "vsphere_template" {
+  description = "VM template name (Ubuntu 22.04 with cloud-init)"
+  type        = string
+  default     = "ubuntu-2204-template"
+}
+
+variable "vsphere_folder" {
+  description = "vSphere folder for VMs"
+  type        = string
+  default     = "RKE2"
 }
 
 variable "kubernetes_version" {
@@ -28,64 +63,16 @@ variable "rke2_token" {
   sensitive   = true
 }
 
-variable "control_plane_count" {
-  description = "Number of control plane nodes"
-  type        = number
-  default     = 1
-}
-
-variable "worker_count" {
-  description = "Number of worker nodes"
-  type        = number
-  default     = 2
-}
-
-variable "control_plane_cpu" {
-  description = "CPUs for control plane VMs"
-  type        = number
-  default     = 4
-}
-
-variable "control_plane_memory" {
-  description = "Memory (MiB) for control plane VMs"
-  type        = number
-  default     = 8192
-}
-
-variable "worker_cpu" {
-  description = "CPUs for worker VMs"
-  type        = number
-  default     = 4
-}
-
-variable "worker_memory" {
-  description = "Memory (MiB) for worker VMs"
-  type        = number
-  default     = 8192
-}
-
 variable "disk_size" {
-  description = "Boot disk size (Gi) for control plane and management VMs"
-  type        = string
-  default     = "100Gi"
+  description = "Boot disk size (GB) for control plane VMs"
+  type        = number
+  default     = 100
 }
 
 variable "worker_disk_size" {
-  description = "Boot disk size (Gi) for worker VMs"
-  type        = string
-  default     = "100Gi"
-}
-
-variable "vm_namespace" {
-  description = "Harvester namespace for VMs"
-  type        = string
-  default     = "default"
-}
-
-variable "cp_static_ip" {
-  description = "Static IP for the first control plane node"
-  type        = string
-  default     = "10.0.0.100"
+  description = "Boot disk size (GB) for worker VMs"
+  type        = number
+  default     = 100
 }
 
 variable "ssh_public_key" {
