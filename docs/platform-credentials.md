@@ -121,7 +121,7 @@ SSO is configured for: ArgoCD, Grafana, Harbor, GitLab, Mattermost, JupyterHub
 
 | Component | IP / URL |
 |-----------|----------|
-| Harvester HCI | 10.0.0.1 |
+| Proxmox VE | 10.0.0.1 |
 | Rancher Management | 10.0.0.50 |
 | RKE2 Control Plane | 10.0.0.10 |
 | Workers | 10.0.0.11-107 |

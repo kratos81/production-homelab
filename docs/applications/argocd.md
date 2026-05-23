@@ -6,7 +6,7 @@ ArgoCD is the GitOps engine for this platform, providing declarative continuous 
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on Proxmox VE
 - **Namespace**: `argocd`
 - **Ingress**: `https://argocd.homelab.local` via NGINX ingress with TLS (cert-manager `homelab-ca-issuer`)
 - **Authentication**: Keycloak OIDC integration (`https://keycloak.homelab.local/realms/homelab`)

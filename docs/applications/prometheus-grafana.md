@@ -6,7 +6,7 @@ kube-prometheus-stack deploys a full monitoring pipeline: Prometheus for metrics
 
 ## Architecture on This Platform
 
-- **Cluster**: RKE2 Kubernetes on Harvester HCI
+- **Cluster**: RKE2 Kubernetes on Proxmox VE
 - **Deployment**: Managed via ArgoCD GitOps from `application/values/prometheus-values.yaml`
 - **Prometheus** scrapes all ServiceMonitors and PodMonitors cluster-wide (`selectorNilUsesHelmValues: false`)
 - **Grafana** is exposed via LoadBalancer with pre-provisioned dashboards for ArgoCD, ingress-nginx, cert-manager, Harbor, MinIO, Vault, Keycloak, JupyterHub, Loki, Litmus Chaos, Argo Workflows, Kyverno, Milvus, MetalLB, NeuVector, OpenCost, Velero, Mattermost, GitLab, Alloy, Tempo, External DNS, Longhorn, KServe, Tailscale, and Open WebUI

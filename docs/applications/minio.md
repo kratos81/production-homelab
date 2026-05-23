@@ -6,7 +6,7 @@ MinIO provides S3-compatible object storage for the platform. It serves as the c
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on Proxmox VE
 - **Mode**: Standalone (single instance)
 - **Namespace**: `minio`
 - **API Endpoint**: `https://minio.homelab.local` via NGINX ingress with TLS

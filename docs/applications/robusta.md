@@ -6,7 +6,7 @@ Robusta is a Kubernetes observability platform that enriches Prometheus alerts w
 
 ## Architecture on This Platform
 
-- **Cluster**: RKE2 Kubernetes on Harvester HCI, cluster name `rke2-cluster-02`
+- **Cluster**: RKE2 Kubernetes on Proxmox VE, cluster name `rke2-cluster-02`
 - **Deployment**: Managed via ArgoCD GitOps from `application/values/robusta-values.yaml`
 - **Prometheus stack integration**: Disabled (`enablePrometheusStack: false`) -- uses the separately deployed kube-prometheus-stack
 - **HolmesGPT integration**: Disabled in Robusta (`enableHolmesGPT: false`) -- HolmesGPT is deployed independently

@@ -6,7 +6,7 @@ HolmesGPT is an AI-powered Kubernetes troubleshooting assistant that analyzes cl
 
 ## Architecture on This Platform
 
-- **Cluster**: RKE2 Kubernetes on Harvester HCI
+- **Cluster**: RKE2 Kubernetes on Proxmox VE
 - **Deployment**: Managed via ArgoCD GitOps from `application/values/holmesgpt-values.yaml`
 - **LLM backend**: Ollama running in the `ai-platform` namespace, model `llama3.2:3b` with low temperature (0.1) for deterministic outputs
 - **Toolsets enabled**: Kubernetes logs, Kubernetes resources, Prometheus queries, Grafana queries

@@ -60,7 +60,7 @@ This repository contains the Infrastructure-as-Code (IaC) and GitOps manifests f
 
 ```
 +===========================================================================+
-|                        HARVESTER HCI  (10.0.0.1)                      |
+|                        PROXMOX VE  (10.0.0.1)                      |
 |                     Bare-Metal Hyperconverged Infrastructure              |
 |  +---------------------------------------------------------------------+  |
 |  |                                                                     |  |
@@ -169,7 +169,7 @@ This repository contains the Infrastructure-as-Code (IaC) and GitOps manifests f
 
 ```mermaid
 graph TB
-    subgraph Harvester["Proxmox VE (10.0.0.1)"]
+    subgraph Proxmox["Proxmox VE (10.0.0.1)"]
         subgraph Network["VM Network: vm-lan (VLAN 0 / mgmt)"]
             subgraph Rancher["Rancher Management Cluster"]
                 RM0["rancher-mgmt-0<br/>10.0.0.50<br/>4 vCPU / 16 GB"]
@@ -198,7 +198,7 @@ graph TB
     CP0 --- Pool1
     RM0 --- Pool2
 
-    style Harvester fill:#1a1a2e,color:#fff
+    style PVE fill:#1a1a2e,color:#fff
     style Rancher fill:#2d6a4f,color:#fff
     style Cluster02 fill:#1b4965,color:#fff
     style Network fill:#264653,color:#fff
@@ -356,7 +356,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph HW["Bare Metal"]
-        Harvester["Proxmox VE<br/>10.0.0.1"]
+        Proxmox["Proxmox VE<br/>10.0.0.1"]
     end
 
     subgraph Mgmt["Management Plane"]
@@ -395,7 +395,7 @@ flowchart TB
         end
     end
 
-    Harvester -->|"provisions VMs"| Mgmt & Cluster
+    PVE -->|"provisions VMs"| Mgmt & Cluster
     Rancher -->|"manages"| Cluster
     ArgoCD2 -->|"deploys"| Sec & Obs & Work & Net
     Runner2 -->|"build & push"| Harbor2
@@ -639,9 +639,9 @@ flowchart TB
 
 ### Infrastructure
 
-**Proxmox VE** -- An open-source hyperconverged infrastructure (HCI) platform built on Kubernetes. Provides VM management, storage, and networking on bare-metal servers. Used as the foundation layer to host all VMs that form the RKE2 clusters, eliminating the need for separate hypervisor and storage solutions.
+**Proxmox VE** -- An open-source open-source virtualization platform based on KVM and LXC. Provides VM management, storage, and networking on bare-metal servers. Used as the foundation layer to host all VMs that form the RKE2 clusters, eliminating the need for separate hypervisor and storage solutions.
 
-**Terraform** -- A declarative Infrastructure-as-Code (IaC) tool by HashiCorp. Provisions and manages Harvester VMs, networks, images, and SSH keys through the Harvester Terraform provider. All infrastructure is defined in `.tf` files, enabling reproducible, version-controlled deployments.
+**Terraform** -- A declarative Infrastructure-as-Code (IaC) tool by HashiCorp. Provisions and manages Proxmox VMs, cloud-init snippets, and storage through the Proxmox Terraform provider (bpg/proxmox). All infrastructure is defined in `.tf` files, enabling reproducible, version-controlled deployments.
 
 **RKE2** -- Rancher Kubernetes Engine 2, a CNCF-conformant Kubernetes distribution focused on security and compliance. Deployed on all VMs via cloud-init. The workload cluster runs 1 control plane + 4 workers; the Rancher management cluster runs a single node. RKE2 provides built-in etcd, containerd, and FIPS-compliant binaries.
 
@@ -907,7 +907,7 @@ The Rancher management VM is defined in `rancher-cluster.tf` and provisioned alo
 
 ```bash
 terraform plan   # Shows 1 new VM: rancher-mgmt-0
-terraform apply  # Creates the VM on Harvester
+terraform apply  # Creates the VM on Proxmox
 ```
 
 ### Bootstrap Steps (after VM is ready)
@@ -1131,7 +1131,7 @@ All services are accessible via HTTPS through MetalLB LoadBalancer IPs, routed b
 
 | Application | URL | Port | Notes |
 |---|---|---|---|
-| Proxmox VE | https://10.0.0.1 | 443 | Hypervisor management UI (direct access, not through MetalLB) |
+| Proxmox VE | https://10.0.0.1 | 443 | Proxmox management UI (direct access) |
 
 ---
 
@@ -1232,8 +1232,8 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
 ### Prerequisites
 
-- Proxmox VE cluster running and accessible at `https://10.0.0.1`
-- Harvester kubeconfig saved to `~/.kube/harvester.yaml`
+- Proxmox VE cluster running and accessible at `root@pam`
+- Proxmox connection saved to `https://proxmox.homelab.local:8006`
 - Terraform >= 1.5.0 installed
 - Helm 3.x installed
 - kubectl installed
@@ -1244,13 +1244,13 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 ```bash
 cd /path/to/infra
 
-# Initialize Terraform (downloads the Harvester provider)
+# Initialize Terraform (downloads the Proxmox provider)
 terraform init
 
 # Review the plan
 terraform plan
 
-# Apply -- creates 1 CP + 4 worker VMs + 1 Rancher management VM on Harvester
+# Apply -- creates 1 CP + 4 worker VMs on Proxmox
 terraform apply
 ```
 
@@ -1323,8 +1323,8 @@ All variables are defined in `variables.tf` with sensible defaults. Override the
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
-| `harvester_kubeconfig_path` | string | `~/.kube/harvester.yaml` | Path to the Harvester cluster kubeconfig file |
-| `harvester_endpoint` | string | `https://10.0.0.1` | Harvester API endpoint URL |
+| `proxmox_endpoint` | string | `https://proxmox.homelab.local:8006` | Proxmox VE API endpoint URL |
+| `proxmox_username` | string | `root@pam` | Proxmox API username |
 | `cluster_name` | string | `rke2-cluster-01` | Name of the RKE2 cluster (used for tagging) |
 | `kubernetes_version` | string | `v1.28.13+rke2r1` | RKE2 Kubernetes version to install on all nodes |
 | `rke2_token` | string (sensitive) | -- | Shared secret token for RKE2 node registration |
@@ -1335,7 +1335,7 @@ All variables are defined in `variables.tf` with sensible defaults. Override the
 | `worker_cpu` | number | `4` | vCPU count for worker VMs |
 | `worker_memory` | number | `8192` | Memory in MiB for worker VMs |
 | `disk_size` | string | `40Gi` | Boot disk size for all VMs |
-| `vm_namespace` | string | `default` | Harvester namespace where VMs are created |
+| `vm_namespace` | string | `default` | Proxmox namespace where VMs are created |
 | `cp_static_ip` | string | `10.0.0.100` | Static IP for the first control plane node |
 | `ssh_public_key` | string | `""` | SSH public key injected into all VMs for root access |
 
@@ -1479,8 +1479,8 @@ infra/
 |-- .gitignore                             # Ignores .terraform/, *.tfstate, terraform.tfvars
 |
 |-- # ===== TERRAFORM (root) - Cluster 02 =====
-|-- providers.tf                           # Harvester provider configuration
-|-- versions.tf                            # Terraform >= 1.5.0, Harvester provider >= 0.6.0
+|-- providers.tf                           # Proxmox provider configuration
+|-- versions.tf                            # Terraform >= 1.5.0, Proxmox provider >= 0.6.0
 |-- variables.tf                           # All Terraform input variables with defaults
 |-- terraform.tfvars                       # Variable overrides (git-ignored, contains secrets)
 |-- main.tf                                # Ubuntu 22.04 image + SSH key resources
@@ -1553,12 +1553,12 @@ infra/
 |   |-- .gitlab-ci.yml                    # Full DevSecOps pipeline (7 stages)
 |
 |-- # ===== LEGACY / ALTERNATE ENVIRONMENTS =====
-|-- harvester/                            # Alternate Harvester Terraform config (older approach)
+|-- proxmox/                            # Alternate Proxmox Terraform config (older approach)
 |   |-- main.tf                           # Dev + Sandbox clusters via null_resource/kubectl
 |   |-- terraform.tfvars
 |
 |-- dev/                                  # Dev environment Terraform (simpler VM provisioning)
-|   |-- main.tf                           # harvester_virtualmachine resources
+|   |-- main.tf                           # proxmox_virtual_environment_vm resources
 |   |-- variables.tf
 |   |-- terraform.tfvars
 ```

@@ -13,7 +13,7 @@ application/
     <app>-values.yaml           # Standard naming convention
     <app>-config/               # Directories for raw K8s manifests (non-Helm apps)
 sample-app/       # Demo Go application with GitLab CI pipeline (.gitlab-ci.yml)
-terraform/        # Harvester VM provisioning (IaC)
+terraform/        # Proxmox VM provisioning (IaC)
 ```
 
 ## Key Conventions

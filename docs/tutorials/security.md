@@ -36,7 +36,7 @@ This tutorial covers the security stack on this platform, teaching the 4C securi
 
 | Layer | Platform Tools |
 |---|---|
-| **Cloud** | Harvester HCI, RKE2 hardened K8s, Cilium CNI |
+| **Cloud** | Proxmox VE, RKE2 hardened K8s, Cilium CNI |
 | **Cluster** | Kyverno (admission), Vault (secrets), Keycloak (RBAC), cert-manager (TLS) |
 | **Container** | NeuVector (runtime), Harbor/Trivy (scanning), Cosign (signing) |
 | **Code** | Semgrep (SAST), Trivy (SCA), Cosign (SBOM) |

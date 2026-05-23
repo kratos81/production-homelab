@@ -6,7 +6,7 @@ Backstage provides a unified developer portal for service catalog management, do
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on Proxmox VE
 - **Namespace**: `backstage`
 - **Endpoint**: `https://backstage.homelab.local` via NGINX ingress with TLS
 - **Image**: `ghcr.io/backstage/backstage:latest`

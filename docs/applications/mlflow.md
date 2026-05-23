@@ -6,7 +6,7 @@ MLflow provides experiment tracking, model versioning, and artifact storage for 
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on Proxmox VE
 - **Namespace**: `ai-platform`
 - **Endpoint**: `https://mlflow.homelab.local` via NGINX ingress with TLS
 - **Internal Service**: `http://mlflow.ai-platform.svc.cluster.local:5000`

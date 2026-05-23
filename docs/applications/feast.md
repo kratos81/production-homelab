@@ -6,7 +6,7 @@ Feast provides a centralized feature store for ML workflows, enabling consistent
 
 ## Architecture on This Platform
 
-- **Platform**: RKE2 Kubernetes on Harvester HCI
+- **Platform**: RKE2 Kubernetes on Proxmox VE
 - **Namespace**: `ai-platform`
 - **Components**: Feature server, PostgreSQL (offline/registry store), Redis (online store)
 - **Feature Server**: Serves features via HTTP/gRPC for online inference

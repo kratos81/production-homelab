@@ -6,7 +6,7 @@ Litmus is a CNCF chaos engineering platform for Kubernetes. It enables teams to 
 
 ## Architecture on This Platform
 
-- **Cluster**: RKE2 Kubernetes on Harvester HCI
+- **Cluster**: RKE2 Kubernetes on Proxmox VE
 - **Deployment**: Managed via ArgoCD GitOps from `application/values/litmus-values.yaml`
 - **Components**:
   - **Portal frontend**: Web UI (ClusterIP service)
