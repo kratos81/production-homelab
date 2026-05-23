@@ -1,0 +1,124 @@
+expose:
+  type: ingress
+  tls:
+    enabled: true
+    certSource: secret
+    secret:
+      secretName: harbor-tls
+  ingress:
+    hosts:
+      core: harbor.homelab.local
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: homelab-ca-issuer
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
+
+externalURL: https://harbor.homelab.local
+
+harborAdminPassword: "CHANGE_ME_HARBOR_ADMIN"
+
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    registry:
+      storageClass: local-path
+      size: 50Gi
+    database:
+      storageClass: local-path
+      size: 5Gi
+    redis:
+      storageClass: local-path
+      size: 2Gi
+    jobservice:
+      storageClass: local-path
+      size: 2Gi
+
+trivy:
+  enabled: true
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+notary:
+  enabled: false
+
+core:
+  configureUserSettings: |
+    {
+      "auth_mode": "oidc_auth",
+      "oidc_name": "Keycloak",
+      "oidc_endpoint": "https://keycloak.homelab.local/realms/homelab",
+      "oidc_client_id": "harbor",
+      "oidc_client_secret": "harbor-keycloak-secret-2024",
+      "oidc_scope": "openid,profile,email,groups",
+      "oidc_groups_claim": "groups",
+      "oidc_admin_group": "admins",
+      "oidc_verify_cert": false,
+      "oidc_auto_onboard": true
+    }
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+jobservice:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+registry:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+database:
+  internal:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+redis:
+  internal:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus
+
+portal:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi

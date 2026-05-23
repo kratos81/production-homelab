@@ -1,0 +1,45 @@
+feast-feature-server:
+  enabled: false
+
+feature_server:
+  enabled: false
+
+global:
+  feature_server:
+    enabled: false
+
+redis:
+  enabled: true
+  image:
+    registry: public.ecr.aws
+    repository: bitnami/redis
+    tag: "7.2"
+  master:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+    persistence:
+      enabled: true
+      size: 2Gi
+
+postgresql:
+  enabled: true
+  image:
+    registry: public.ecr.aws
+    repository: bitnami/postgresql
+    tag: "16"
+  primary:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    persistence:
+      enabled: true
+      size: 5Gi

@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-security-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: '1'
+data:
+  pipeline-security.json: '{"uid": "pipeline-security-v2", "title": "Pipeline Security",
+    "tags": ["devsecops"], "timezone": "browser", "time": {"from": "now-7d", "to":
+    "now"}, "refresh": "1m", "panels": [{"id": 100, "title": "", "type": "text", "gridPos":
+    {"h": 2, "w": 24, "x": 0, "y": 0}, "options": {"mode": "markdown", "content":
+    "## Security Posture \u2014 sample-app"}}, {"id": 1, "title": "Security Score",
+    "type": "gauge", "gridPos": {"h": 6, "w": 4, "x": 0, "y": 2}, "datasource": {"type":
+    "prometheus", "uid": "prometheus"}, "targets": [{"expr": "max(pipeline_security_score{project=\"sample-app\"})",
+    "refId": "A"}], "fieldConfig": {"defaults": {"min": 0, "max": 100, "unit": "percent",
+    "thresholds": {"mode": "absolute", "steps": [{"color": "#f85149", "value": null},
+    {"color": "#d29922", "value": 60}, {"color": "#3fb950", "value": 80}]}, "color":
+    {"mode": "thresholds"}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]},
+    "showThresholdLabels": false, "showThresholdMarkers": true}}, {"id": 2, "title":
+    "Status", "type": "stat", "gridPos": {"h": 3, "w": 2, "x": 4, "y": 2}, "datasource":
+    {"type": "prometheus", "uid": "prometheus"}, "targets": [{"expr": "max(pipeline_status{project=\"sample-app\"})",
+    "refId": "A"}], "fieldConfig": {"defaults": {"displayName": "Pipeline", "mappings":
+    [{"type": "value", "options": {"0": {"text": "FAIL", "color": "#f85149", "index":
+    0}, "1": {"text": "PASS", "color": "#3fb950", "index": 1}}}], "thresholds": {"mode":
+    "absolute", "steps": [{"color": "transparent", "value": null}]}}}, "options":
+    {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background", "graphMode":
+    "none", "textMode": "value", "justifyMode": "center"}}, {"id": 3, "title": "Duration",
+    "type": "stat", "gridPos": {"h": 3, "w": 2, "x": 6, "y": 2}, "datasource": {"type":
+    "prometheus", "uid": "prometheus"}, "targets": [{"expr": "max(pipeline_duration_seconds{project=\"sample-app\"})",
+    "refId": "A"}], "fieldConfig": {"defaults": {"displayName": "Run Time", "unit":
+    "s", "thresholds": {"mode": "absolute", "steps": [{"color": "#58a6ff", "value":
+    null}]}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode":
+    "none", "graphMode": "none", "textMode": "value", "justifyMode": "center"}}, {"id":
+    4, "title": "Components", "type": "stat", "gridPos": {"h": 3, "w": 2, "x": 4,
+    "y": 5}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets":
+    [{"expr": "max(pipeline_sbom_components{project=\"sample-app\"})", "refId": "A"}],
+    "fieldConfig": {"defaults": {"displayName": "SBOM", "thresholds": {"mode": "absolute",
+    "steps": [{"color": "#8b949e", "value": null}]}}}, "options": {"reduceOptions":
+    {"calcs": ["lastNotNull"]}, "colorMode": "none", "graphMode": "none", "textMode":
+    "value", "justifyMode": "center"}}, {"id": 5, "title": "Dependencies", "type":
+    "stat", "gridPos": {"h": 3, "w": 2, "x": 6, "y": 5}, "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "targets": [{"expr": "max(pipeline_dependencies{project=\"sample-app\"})",
+    "refId": "A"}], "fieldConfig": {"defaults": {"displayName": "Deps", "thresholds":
+    {"mode": "absolute", "steps": [{"color": "#8b949e", "value": null}]}}}, "options":
+    {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "none", "graphMode":
+    "none", "textMode": "value", "justifyMode": "center"}}, {"id": 10, "title": "Score
+    Trend", "type": "timeseries", "gridPos": {"h": 6, "w": 8, "x": 8, "y": 2}, "datasource":
+    {"type": "prometheus", "uid": "prometheus"}, "targets": [{"expr": "pipeline_security_score{project=\"sample-app\"}",
+    "legendFormat": "#{{pipeline}}", "refId": "A"}], "fieldConfig": {"defaults": {"min":
+    0, "max": 100, "unit": "percent", "custom": {"lineWidth": 2, "fillOpacity": 15,
+    "pointSize": 5, "showPoints": "always", "spanNulls": true, "lineInterpolation":
+    "smooth"}, "color": {"mode": "fixed", "fixedColor": "#58a6ff"}}}, "options": {"legend":
+    {"displayMode": "hidden"}, "tooltip": {"mode": "single"}}}, {"id": 11, "title":
+    "Pipeline Duration", "type": "timeseries", "gridPos": {"h": 6, "w": 8, "x": 16,
+    "y": 2}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets":
+    [{"expr": "pipeline_duration_seconds{project=\"sample-app\"}", "legendFormat":
+    "#{{pipeline}}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "s", "custom":
+    {"lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "showPoints": "always", "spanNulls":
+    true, "lineInterpolation": "smooth"}, "color": {"mode": "fixed", "fixedColor":
+    "#d2a8ff"}}}, "options": {"legend": {"displayMode": "hidden"}, "tooltip": {"mode":
+    "single"}}}, {"id": 200, "title": "", "type": "text", "gridPos": {"h": 2, "w":
+    24, "x": 0, "y": 8}, "options": {"mode": "markdown", "content": "## Vulnerabilities"}},
+    {"id": 20, "title": "Critical", "type": "stat", "gridPos": {"h": 4, "w": 3, "x":
+    0, "y": 10}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets":
+    [{"expr": "max(pipeline_trivy_critical_cves{project=\"sample-app\"})", "refId":
+    "A"}], "fieldConfig": {"defaults": {"displayName": "Critical", "thresholds": {"mode":
+    "absolute", "steps": [{"color": "#3fb950", "value": null}, {"color": "#f85149",
+    "value": 1}]}, "color": {"mode": "thresholds"}}}, "options": {"reduceOptions":
+    {"calcs": ["lastNotNull"]}, "colorMode": "background_solid", "graphMode": "none",
+    "textMode": "value", "justifyMode": "center"}}, {"id": 21, "title": "High", "type":
+    "stat", "gridPos": {"h": 4, "w": 3, "x": 3, "y": 10}, "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "targets": [{"expr": "max(pipeline_trivy_high_cves{project=\"sample-app\"})",
+    "refId": "A"}], "fieldConfig": {"defaults": {"displayName": "High", "thresholds":
+    {"mode": "absolute", "steps": [{"color": "#3fb950", "value": null}, {"color":
+    "#d29922", "value": 3}, {"color": "#f85149", "value": 10}]}, "color": {"mode":
+    "thresholds"}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode":
+    "background_solid", "graphMode": "none", "textMode": "value", "justifyMode": "center"}},
+    {"id": 22, "title": "Medium", "type": "stat", "gridPos": {"h": 4, "w": 3, "x":
+    6, "y": 10}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets":
+    [{"expr": "max(pipeline_trivy_medium_cves{project=\"sample-app\"})", "refId":
+    "A"}], "fieldConfig": {"defaults": {"displayName": "Medium", "thresholds": {"mode":
+    "absolute", "steps": [{"color": "#3fb950", "value": null}, {"color": "#d29922",
+    "value": 10}]}, "color": {"mode": "thresholds"}}}, "options": {"reduceOptions":
+    {"calcs": ["lastNotNull"]}, "colorMode": "background_solid", "graphMode": "none",
+    "textMode": "value", "justifyMode": "center"}}, {"id": 23, "title": "Low", "type":
+    "stat", "gridPos": {"h": 4, "w": 3, "x": 9, "y": 10}, "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "targets": [{"expr": "max(pipeline_trivy_low_cves{project=\"sample-app\"})",
+    "refId": "A"}], "fieldConfig": {"defaults": {"displayName": "Low", "thresholds":
+    {"mode": "absolute", "steps": [{"color": "#3fb950", "value": null}, {"color":
+    "#8b949e", "value": 1}]}, "color": {"mode": "thresholds"}}}, "options": {"reduceOptions":
+    {"calcs": ["lastNotNull"]}, "colorMode": "background_solid", "graphMode": "none",
+    "textMode": "value", "justifyMode": "center"}}, {"id": 24, "title": "CVE Trend",
+    "type": "timeseries", "gridPos": {"h": 4, "w": 12, "x": 12, "y": 10}, "datasource":
+    {"type": "prometheus", "uid": "prometheus"}, "targets": [{"expr": "pipeline_trivy_critical_cves{project=\"sample-app\"}",
+    "legendFormat": "Critical", "refId": "A"}, {"expr": "pipeline_trivy_high_cves{project=\"sample-app\"}",
+    "legendFormat": "High", "refId": "B"}, {"expr": "pipeline_trivy_medium_cves{project=\"sample-app\"}",
+    "legendFormat": "Medium", "refId": "C"}], "fieldConfig": {"defaults": {"custom":
+    {"lineWidth": 2, "fillOpacity": 10, "pointSize": 4, "showPoints": "always", "spanNulls":
+    true, "lineInterpolation": "smooth"}, "min": 0}, "overrides": [{"matcher": {"id":
+    "byName", "options": "Critical"}, "properties": [{"id": "color", "value": {"mode":
+    "fixed", "fixedColor": "#f85149"}}]}, {"matcher": {"id": "byName", "options":
+    "High"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor":
+    "#d29922"}}]}, {"matcher": {"id": "byName", "options": "Medium"}, "properties":
+    [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#8b949e"}}]}]}, "options":
+    {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode":
+    "multi"}}}, {"id": 300, "title": "", "type": "text", "gridPos": {"h": 2, "w":
+    24, "x": 0, "y": 14}, "options": {"mode": "markdown", "content": "## Code Quality
+    & Supply Chain"}}, {"id": 30, "title": "SAST", "type": "stat", "gridPos": {"h":
+    4, "w": 4, "x": 0, "y": 16}, "datasource": {"type": "prometheus", "uid": "prometheus"},
+    "targets": [{"expr": "max(pipeline_semgrep_findings{project=\"sample-app\"})",
+    "refId": "A"}], "fieldConfig": {"defaults": {"displayName": "SAST Findings", "thresholds":
+    {"mode": "absolute", "steps": [{"color": "#3fb950", "value": null}, {"color":
+    "#d29922", "value": 1}, {"color": "#f85149", "value": 5}]}, "color": {"mode":
+    "thresholds"}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode":
+    "background_solid", "graphMode": "none", "textMode": "value", "justifyMode": "center"}},
+    {"id": 31, "title": "Secrets", "type": "stat", "gridPos": {"h": 4, "w": 4, "x":
+    4, "y": 16}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets":
+    [{"expr": "max(pipeline_secrets_detected{project=\"sample-app\"})", "refId": "A"}],
+    "fieldConfig": {"defaults": {"displayName": "Secrets Leaked", "thresholds": {"mode":
+    "absolute", "steps": [{"color": "#3fb950", "value": null}, {"color": "#f85149",
+    "value": 1}]}, "color": {"mode": "thresholds"}}}, "options": {"reduceOptions":
+    {"calcs": ["lastNotNull"]}, "colorMode": "background_solid", "graphMode": "none",
+    "textMode": "value", "justifyMode": "center"}}, {"id": 32, "title": "SBOM", "type":
+    "stat", "gridPos": {"h": 4, "w": 4, "x": 8, "y": 16}, "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "targets": [{"expr": "max(pipeline_sbom_components{project=\"sample-app\"})",
+    "refId": "A"}], "fieldConfig": {"defaults": {"displayName": "SBOM Components",
+    "thresholds": {"mode": "absolute", "steps": [{"color": "#58a6ff", "value": null}]},
+    "color": {"mode": "thresholds"}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]},
+    "colorMode": "background_solid", "graphMode": "none", "textMode": "value", "justifyMode":
+    "center"}}, {"id": 33, "title": "Findings Trend", "type": "timeseries", "gridPos":
+    {"h": 4, "w": 12, "x": 12, "y": 16}, "datasource": {"type": "prometheus", "uid":
+    "prometheus"}, "targets": [{"expr": "pipeline_semgrep_findings{project=\"sample-app\"}",
+    "legendFormat": "SAST", "refId": "A"}, {"expr": "pipeline_secrets_detected{project=\"sample-app\"}",
+    "legendFormat": "Secrets", "refId": "B"}, {"expr": "pipeline_trivy_total_cves{project=\"sample-app\"}",
+    "legendFormat": "Total CVEs", "refId": "C"}], "fieldConfig": {"defaults": {"min":
+    0, "custom": {"lineWidth": 2, "fillOpacity": 10, "pointSize": 4, "showPoints":
+    "always", "spanNulls": true, "lineInterpolation": "smooth"}, "color": {"mode":
+    "palette-classic"}}}, "options": {"legend": {"displayMode": "list", "placement":
+    "bottom"}, "tooltip": {"mode": "multi"}}}], "schemaVersion": 39, "version": 5}'

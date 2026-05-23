@@ -1,0 +1,41 @@
+backendStore:
+  databaseMigration: false
+
+artifactRoot:
+  s3:
+    enabled: true
+    bucket: mlflow
+    awsAccessKeyId: admin
+    awsSecretAccessKey: CHANGE_ME_MINIO_ADMIN
+
+extraEnvVars:
+  MLFLOW_S3_ENDPOINT_URL: http://minio.minio.svc.cluster.local:9000
+  MLFLOW_S3_IGNORE_TLS: "true"
+
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: prometheus
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+  hosts:
+    - host: mlflow.homelab.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: mlflow-tls
+      hosts:
+        - mlflow.homelab.local

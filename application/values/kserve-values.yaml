@@ -1,0 +1,12 @@
+kserve:
+  controller:
+    replicas: 0
+    image:
+      kube-rbac-proxy: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi

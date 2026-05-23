@@ -1,0 +1,112 @@
+alloy:
+  configMap:
+    content: |-
+      // ============================================================
+      // Log Collection (replaces Promtail)
+      // ============================================================
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          target_label  = "app"
+        }
+      }
+
+      loki.source.kubernetes "pod_logs" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+        }
+      }
+
+      // ============================================================
+      // OTLP Receiver (traces + metrics from instrumented apps)
+      // ============================================================
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+        output {
+          traces  = [otelcol.exporter.otlphttp.tempo.input]
+          metrics = [otelcol.exporter.prometheus.default.input]
+        }
+      }
+
+      // Export traces to Tempo
+      otelcol.exporter.otlphttp "tempo" {
+        client {
+          endpoint = "http://tempo.monitoring.svc.cluster.local:4318"
+          tls {
+            insecure = true
+          }
+        }
+      }
+
+      // Export metrics to Prometheus
+      otelcol.exporter.prometheus "default" {
+        forward_to = [prometheus.remote_write.default.receiver]
+      }
+
+      prometheus.remote_write "default" {
+        endpoint {
+          url = "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+        }
+      }
+
+      // ============================================================
+      // Self-monitoring
+      // ============================================================
+      logging {
+        level  = "info"
+        format = "logfmt"
+      }
+
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+
+controller:
+  type: daemonset
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: prometheus

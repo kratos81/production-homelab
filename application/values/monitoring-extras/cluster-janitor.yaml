@@ -1,0 +1,93 @@
+---
+# ServiceAccount for the janitor
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-janitor
+  namespace: monitoring
+---
+# ClusterRole with permissions to delete failed pods
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-janitor
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-janitor
+subjects:
+  - kind: ServiceAccount
+    name: cluster-janitor
+    namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: cluster-janitor
+  apiGroup: rbac.authorization.k8s.io
+---
+# CronJob: runs every 6 hours to clean failed/evicted pods
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cluster-janitor
+  namespace: monitoring
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          serviceAccountName: cluster-janitor
+          restartPolicy: Never
+          containers:
+            - name: janitor
+              image: public.ecr.aws/bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "=== Cluster Janitor $(date) ==="
+
+                  # 1. Delete all Failed pods (evicted, error, etc.)
+                  FAILED=$(kubectl get pods -A --field-selector=status.phase=Failed --no-headers 2>/dev/null | wc -l)
+                  if [ "$FAILED" -gt 0 ]; then
+                    kubectl delete pods -A --field-selector=status.phase=Failed 2>/dev/null
+                    echo "Deleted $FAILED failed pods"
+                  fi
+
+                  # 2. Delete pods stuck in Unknown/ContainerStatusUnknown
+                  kubectl get pods -A --no-headers 2>/dev/null | grep -E "Unknown|ContainerStatusUnknown" | awk '{print $1, $2}' | while read ns pod; do
+                    kubectl delete pod -n $ns $pod --force --grace-period=0 2>/dev/null
+                  done
+                  echo "Cleaned unknown status pods"
+
+                  # 3. Delete pods stuck in Error state for more than 1 hour
+                  kubectl get pods -A --no-headers 2>/dev/null | grep Error | awk '{print $1, $2}' | while read ns pod; do
+                    kubectl delete pod -n $ns $pod --force --grace-period=0 2>/dev/null
+                  done
+                  echo "Cleaned error pods"
+
+                  # 4. Report current state
+                  RUNNING=$(kubectl get pods -A --no-headers 2>/dev/null | grep Running | wc -l)
+                  NOT=$(kubectl get pods -A --no-headers 2>/dev/null | grep -v Running | grep -v Completed | grep -v Terminating | wc -l)
+                  echo "Status: $RUNNING running, $NOT not-running"
+                  echo "=== Janitor Complete ==="
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi

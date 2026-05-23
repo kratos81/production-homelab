@@ -1,0 +1,36 @@
+tetragon:
+  enabled: true
+  exportFilename: /var/run/cilium/tetragon/tetragon.log
+  enableProcessCred: true
+  enableProcessNs: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Export events to stdout for Loki collection via Alloy
+export:
+  stdout:
+    enabledCommand: true
+    enabledArgs: true
+
+# Enable Prometheus metrics
+tetragonOperator:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      labels:
+        release: prometheus

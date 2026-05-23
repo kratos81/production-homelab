@@ -1,0 +1,50 @@
+clusterName: rke2-cluster-02
+
+enablePrometheusStack: false
+
+enablePlatformPlaybooks: true
+
+runner:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+sinksConfig:
+  - robusta_sink:
+      name: robusta_ui_sink
+      token: ""
+
+enableHolmesGPT: false
+
+globalConfig:
+  alertmanager_url: "http://prometheus-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093"
+  prometheus_url: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+  grafana_url: "http://prometheus-grafana.monitoring.svc.cluster.local:80"
+
+builtinPlaybooks:
+  - triggers:
+      - on_prometheus_alert:
+          alert_name: KubePodCrashLooping
+    actions:
+      - logs_enricher: {}
+      - pod_events_enricher: {}
+  - triggers:
+      - on_prometheus_alert:
+          alert_name: KubePodNotReady
+    actions:
+      - logs_enricher: {}
+      - pod_events_enricher: {}
+  - triggers:
+      - on_prometheus_alert:
+          alert_name: KubeDeploymentReplicasMismatch
+    actions:
+      - deployment_events_enricher: {}
+  - triggers:
+      - on_prometheus_alert:
+          alert_name: KubeContainerWaiting
+    actions:
+      - pod_issue_investigator: {}

@@ -1,0 +1,110 @@
+---
+# GitLab Webservice metrics (uses gitlab-exporter which is already running)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gitlab-webservice
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames: [gitlab]
+  selector:
+    matchLabels:
+      app: gitlab-exporter
+  endpoints:
+    - port: http-gitlab-exptr
+      interval: 30s
+---
+# GitLab Gitaly metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gitlab-gitaly
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames: [gitlab]
+  selector:
+    matchLabels:
+      app: gitaly
+  endpoints:
+    - port: gitaly-metrics
+      interval: 30s
+---
+# GitLab Runner metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gitlab-runner
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames: [gitlab-runners]
+  selector:
+    matchLabels:
+      app: gitlab-runner
+  endpoints:
+    - port: metrics
+      interval: 30s
+---
+# MinIO metrics (use the API port with cluster metrics path)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: minio-cluster
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames: [minio]
+  selector:
+    matchLabels:
+      app: minio
+  endpoints:
+    - port: http
+      path: /minio/v2/metrics/cluster
+      interval: 60s
+---
+# External-DNS / CoreDNS metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: external-dns-coredns
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames: [external-dns]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: coredns
+  endpoints:
+    - port: metrics
+      interval: 30s
+---
+# Sample App metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sample-app
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames: [sample-app]
+  selector:
+    matchLabels:
+      app: sample-app
+  endpoints:
+    - port: http
+      path: /healthz
+      interval: 30s

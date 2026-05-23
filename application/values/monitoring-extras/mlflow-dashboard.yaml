@@ -1,0 +1,185 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-mlflow
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  mlflow.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "description": "MLflow tracking server metrics",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "links": [],
+      "panels": [
+        {
+          "title": "Request Rate",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(mlflow_http_request_total{job=~\".*mlflow.*\"}[5m])) by (method, status)",
+              "legendFormat": "{{method}} {{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "Request Latency (p50 / p95 / p99)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(mlflow_http_request_duration_seconds_bucket{job=~\".*mlflow.*\"}[5m])) by (le))",
+              "legendFormat": "p50"
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(mlflow_http_request_duration_seconds_bucket{job=~\".*mlflow.*\"}[5m])) by (le))",
+              "legendFormat": "p95"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(mlflow_http_request_duration_seconds_bucket{job=~\".*mlflow.*\"}[5m])) by (le))",
+              "legendFormat": "p99"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "Active Experiments",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "mlflow_experiments_total{job=~\".*mlflow.*\"}",
+              "legendFormat": "Experiments"
+            }
+          ]
+        },
+        {
+          "title": "Total Runs",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+          "targets": [
+            {
+              "expr": "mlflow_runs_total{job=~\".*mlflow.*\"}",
+              "legendFormat": "Runs"
+            }
+          ]
+        },
+        {
+          "title": "Registered Models",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "mlflow_registered_models_total{job=~\".*mlflow.*\"}",
+              "legendFormat": "Models"
+            }
+          ]
+        },
+        {
+          "title": "Model Versions",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 8 },
+          "targets": [
+            {
+              "expr": "mlflow_model_versions_total{job=~\".*mlflow.*\"}",
+              "legendFormat": "Versions"
+            }
+          ]
+        },
+        {
+          "title": "Error Rate (5xx)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+          "targets": [
+            {
+              "expr": "sum(rate(mlflow_http_request_total{job=~\".*mlflow.*\", status=~\"5..\"}[5m]))",
+              "legendFormat": "5xx errors/s"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "Pod CPU Usage",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"mlflow\", container!=\"\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "Pod Memory Usage",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"mlflow\", container!=\"\"}) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "Artifact Store I/O",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+          "targets": [
+            {
+              "expr": "sum(rate(mlflow_artifact_upload_bytes_total{job=~\".*mlflow.*\"}[5m]))",
+              "legendFormat": "Upload bytes/s"
+            },
+            {
+              "expr": "sum(rate(mlflow_artifact_download_bytes_total{job=~\".*mlflow.*\"}[5m]))",
+              "legendFormat": "Download bytes/s"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["mlflow", "ml", "platform"],
+      "templating": { "list": [] },
+      "time": { "from": "now-1h", "to": "now" },
+      "title": "MLflow",
+      "uid": "mlflow-custom"
+    }

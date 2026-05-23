@@ -1,0 +1,54 @@
+backstage:
+  image:
+    registry: ghcr.io
+    repository: backstage/backstage
+    tag: latest
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  extraEnvVars:
+    - name: APP_CONFIG_app_baseUrl
+      value: "https://backstage.homelab.local"
+    - name: APP_CONFIG_backend_baseUrl
+      value: "https://backstage.homelab.local"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+  hosts:
+    - host: backstage.homelab.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: backstage-tls
+      hosts:
+        - backstage.homelab.local
+
+metrics:
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: prometheus
+
+postgresql:
+  enabled: true
+  auth:
+    password: BackstageDB2024!
+  primary:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    persistence:
+      enabled: true
+      size: 5Gi

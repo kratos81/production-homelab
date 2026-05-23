@@ -1,0 +1,64 @@
+cluster:
+  enabled: false
+
+standalone:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  persistence:
+    enabled: true
+    persistentVolumeClaim:
+      size: 10Gi
+
+etcd:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+minio:
+  enabled: false
+
+externalS3:
+  enabled: true
+  host: minio.minio.svc.cluster.local
+  port: 9000
+  accessKey: admin
+  secretKey: CHANGE_ME_MINIO_ADMIN
+  bucketName: milvus
+  useSSL: false
+
+pulsar:
+  enabled: false
+
+kafka:
+  enabled: false
+
+attu:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - milvus.homelab.local
+    annotations:
+      cert-manager.io/cluster-issuer: homelab-ca-issuer
+    tls:
+      - secretName: milvus-tls
+        hosts:
+          - milvus.homelab.local
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus

@@ -1,0 +1,47 @@
+defaultSettings:
+  defaultReplicaCount: 2
+  storageMinimalAvailablePercentage: 15
+  defaultDataLocality: best-effort
+  nodeDownPodDeletionPolicy: delete-both-statefulset-and-deployment-pod
+  createDefaultDiskLabeledNodes: true
+
+persistence:
+  defaultClass: false
+  defaultClassReplicaCount: 2
+  reclaimPolicy: Retain
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  host: longhorn.homelab.local
+  tls: true
+  tlsSecret: longhorn-tls
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+
+longhornManager:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+longhornDriver:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+longhornUI:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi

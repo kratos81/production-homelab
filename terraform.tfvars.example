@@ -1,0 +1,4 @@
+rke2_token         = "CHANGE_ME_RKE2_TOKEN"
+student_rke2_token = "CHANGE_ME_RKE2_TOKEN"
+ssh_public_key     = "ssh-ed25519 CHANGE_ME_SSH_PUBLIC_KEY user@homelab"
+harvester_kubeconfig_path = "~/.kube/harvester.yaml"

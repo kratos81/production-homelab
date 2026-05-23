@@ -1,0 +1,87 @@
+image:
+  repository: mattermost/mattermost-team-edition
+  tag: 9.11
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - mattermost.homelab.local
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  tls:
+    - secretName: mattermost-tls
+      hosts:
+        - mattermost.homelab.local
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 1Gi
+
+persistence:
+  data:
+    enabled: true
+    size: 10Gi
+  plugins:
+    enabled: true
+    size: 1Gi
+
+mysql:
+  enabled: true
+  mysqlUser: mattermost
+  mysqlPassword: CHANGE_ME_MATTERMOST_DB
+  mysqlDatabase: mattermost
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1536Mi
+
+configJSON:
+  ServiceSettings:
+    SiteURL: "https://mattermost.homelab.local"
+    EnableIncomingWebhooks: true
+    EnablePostUsernameOverride: true
+    EnablePostIconOverride: true
+    EnableLocalMode: true
+    LocalModeSocketLocation: "/var/tmp/mattermost_local.socket"
+    EnableBotAccountCreation: true
+  TeamSettings:
+    SiteName: "HomeLab Platform"
+    EnableOpenServer: true
+  GitLabSettings:
+    Enable: true
+    Id: "mattermost"
+    Secret: "CHANGE_ME_MATTERMOST_OIDC"
+    Scope: ""
+    AuthEndpoint: "https://keycloak.homelab.local/realms/homelab/protocol/openid-connect/auth"
+    TokenEndpoint: "https://keycloak.homelab.local/realms/homelab/protocol/openid-connect/token"
+    UserAPIEndpoint: "https://keycloak.homelab.local/realms/homelab/protocol/openid-connect/userinfo"
+    DiscoveryEndpoint: "https://keycloak.homelab.local/realms/homelab/.well-known/openid-configuration"
+    ButtonText: "Login with Keycloak"
+    ButtonColor: "#373A6F"
+  SupportSettings:
+    CustomTermsOfServiceEnabled: false
+  NativeAppSettings:
+    AppCustomURLSchemes: []
+  AnnouncementSettings:
+    EnableBanner: true
+    BannerText: "HomeLab - Future-Proof Your Skills and Level Up Your Career"
+    BannerColor: "#373A6F"
+    BannerTextColor: "#FFFFFF"
+    AllowBannerDismissal: true
+  LogSettings:
+    EnableConsole: true
+    ConsoleLevel: "INFO"

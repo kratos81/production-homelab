@@ -1,0 +1,53 @@
+opencost:
+  prometheus:
+    internal:
+      enabled: true
+      serviceName: prometheus-kube-prometheus-prometheus
+      namespaceName: monitoring
+      port: 9090
+  ui:
+    enabled: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      hosts:
+        - host: opencost.homelab.local
+          paths:
+            - /
+      annotations:
+        cert-manager.io/cluster-issuer: homelab-ca-issuer
+      tls:
+        - secretName: opencost-tls
+          hosts:
+            - opencost.homelab.local
+  exporter:
+    defaultClusterId: rke2-cluster-02
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  customPricing:
+    enabled: true
+    provider: custom
+    costModel:
+      CPU: "0.031611"
+      spotCPU: "0.006655"
+      RAM: "0.004237"
+      spotRAM: "0.000892"
+      storage: "0.00005479452"
+
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: prometheus

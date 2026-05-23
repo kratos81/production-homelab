@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: neuvector-admission-policy
+  namespace: neuvector
+  annotations:
+    description: "Seed config for NeuVector admission control rules — applied via init script"
+data:
+  admission-rules.json: |
+    {
+      "config": {
+        "enable": true,
+        "mode": "monitor",
+        "default_action": "allow"
+      },
+      "rules": [
+        {
+          "comment": "Block images with critical CVEs from production namespaces",
+          "criteria": [
+            {
+              "name": "cveHighCount",
+              "op": ">",
+              "value": "10"
+            }
+          ],
+          "disable": false,
+          "rule_type": "deny"
+        },
+        {
+          "comment": "Block images with any critical CVE",
+          "criteria": [
+            {
+              "name": "cveCriticalCount",
+              "op": ">",
+              "value": "0"
+            }
+          ],
+          "disable": false,
+          "rule_type": "deny"
+        },
+        {
+          "comment": "Block images not from Harbor registry",
+          "criteria": [
+            {
+              "name": "imageRegistry",
+              "op": "containsNot",
+              "value": "harbor.homelab.local"
+            }
+          ],
+          "disable": false,
+          "rule_type": "deny"
+        },
+        {
+          "comment": "Block unscanned images",
+          "criteria": [
+            {
+              "name": "imageScanned",
+              "op": "=",
+              "value": "false"
+            }
+          ],
+          "disable": false,
+          "rule_type": "deny"
+        }
+      ]
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: neuvector-admission-setup
+  namespace: neuvector
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: setup
+          image: alpine:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              apk add --no-cache curl jq
+              NV_API="https://neuvector-svc-controller.neuvector:10443/v1"
+
+              echo "Waiting for NeuVector controller..."
+              for i in $(seq 1 30); do
+                curl -sk "${NV_API}/auth" >/dev/null 2>&1 && break
+                echo "  Attempt $i/30..."
+                sleep 10
+              done
+
+              echo "Authenticating..."
+              TOKEN=$(curl -sk -X POST "${NV_API}/auth" \
+                -H "Content-Type: application/json" \
+                -d "{\"password\":{\"username\":\"admin\",\"password\":\"${NV_ADMIN_PASSWORD}\"}}" \
+                | jq -r '.token.token')
+
+              echo "Enabling admission control..."
+              curl -sk -X PATCH "${NV_API}/admission/state" \
+                -H "Content-Type: application/json" \
+                -H "X-Auth-Token: ${TOKEN}" \
+                -d '{"state":{"enable":true,"mode":"monitor","default_action":"allow"}}'
+
+              echo "Applying admission rules..."
+              RULES=$(cat /config/admission-rules.json | jq -c '.rules[]')
+              echo "$RULES" | while read -r RULE; do
+                echo "  Adding rule: $(echo "$RULE" | jq -r '.comment')"
+                curl -sk -X POST "${NV_API}/admission/rule" \
+                  -H "Content-Type: application/json" \
+                  -H "X-Auth-Token: ${TOKEN}" \
+                  -d "{\"config\":${RULE}}" || true
+              done
+
+              curl -sk -X DELETE "${NV_API}/auth" \
+                -H "X-Auth-Token: ${TOKEN}" || true
+              echo "Admission control setup complete"
+          env:
+            - name: NV_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: neuvector-admin-password
+                  key: password
+                  optional: true
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          configMap:
+            name: neuvector-admission-policy

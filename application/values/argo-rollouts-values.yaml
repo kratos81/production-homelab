@@ -1,0 +1,42 @@
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+
+dashboard:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - rollouts.homelab.local
+    tls:
+      - secretName: rollouts-tls
+        hosts:
+          - rollouts.homelab.local
+    annotations:
+      cert-manager.io/cluster-issuer: homelab-ca-issuer
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+# Enable analysis with Prometheus
+providerConfigs:
+  - name: prometheus-provider
+    prometheus:
+      address: http://prometheus-kube-prometheus-prometheus.monitoring:9090

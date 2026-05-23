@@ -1,0 +1,74 @@
+proxy:
+  service:
+    type: ClusterIP
+  https:
+    enabled: false
+
+hub:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  config:
+    Authenticator:
+      admin_users:
+        - user
+      auto_login: true
+    GenericOAuthenticator:
+      client_id: jupyterhub
+      client_secret: jupyterhub-keycloak-secret-2024
+      oauth_callback_url: https://jupyter.homelab.local/hub/oauth_callback
+      authorize_url: https://keycloak.homelab.local/realms/homelab/protocol/openid-connect/auth
+      token_url: https://keycloak.homelab.local/realms/homelab/protocol/openid-connect/token
+      userdata_url: https://keycloak.homelab.local/realms/homelab/protocol/openid-connect/userinfo
+      scope:
+        - openid
+        - profile
+        - email
+      username_claim: preferred_username
+      tls_verify: false
+      login_service: Keycloak
+    JupyterHub:
+      authenticator_class: generic-oauth
+
+singleuser:
+  defaultUrl: /lab
+  image:
+    name: quay.io/jupyter/scipy-notebook
+    tag: latest
+  cpu:
+    limit: 2
+    guarantee: 0.5
+  memory:
+    limit: 4G
+    guarantee: 1G
+  storage:
+    capacity: 5Gi
+    dynamic:
+      storageClass: longhorn
+  extraEnv:
+    OLLAMA_HOST: http://ollama.ai-platform.svc.cluster.local:11434
+    MLFLOW_TRACKING_URI: http://mlflow.ai-platform.svc.cluster.local:5000
+    MLFLOW_S3_ENDPOINT_URL: http://minio.minio.svc.cluster.local:9000
+    AWS_ACCESS_KEY_ID: admin
+    AWS_SECRET_ACCESS_KEY: CHANGE_ME_MINIO_ADMIN
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  hosts:
+    - jupyter.homelab.local
+  tls:
+    - secretName: jupyterhub-tls
+      hosts:
+        - jupyter.homelab.local
+
+scheduling:
+  userScheduler:
+    enabled: false

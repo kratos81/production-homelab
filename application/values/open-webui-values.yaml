@@ -1,0 +1,37 @@
+replicaCount: 1
+
+ollama:
+  enabled: false
+
+ollamaUrls:
+  - http://ollama.ai-platform.svc.cluster.local:11434
+
+persistence:
+  enabled: true
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 2Gi
+
+ingress:
+  enabled: true
+  class: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  host: chat.homelab.local
+  tls: true
+  existingSecret: open-webui-tls
+
+env:
+  - name: WEBUI_NAME
+    value: "HomeLab AI"
+  - name: WEBUI_DEFAULT_LOCALE
+    value: "en"

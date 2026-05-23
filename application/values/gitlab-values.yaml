@@ -1,0 +1,168 @@
+global:
+  hosts:
+    domain: homelab.local
+    gitlab:
+      name: gitlab.homelab.local
+  ingress:
+    class: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: homelab-ca-issuer
+    configureCertmanager: false
+    tls:
+      enabled: true
+  edition: ce
+  registry:
+    enabled: false
+  pages:
+    enabled: false
+  minio:
+    enabled: false
+  kas:
+    enabled: false
+  appConfig:
+    object_store:
+      enabled: true
+      proxy_download: true
+      direct_upload: false
+      connection:
+        secret: gitlab-object-storage
+        key: connection
+    artifacts:
+      enabled: true
+      bucket: gitlab-artifacts
+    uploads:
+      enabled: true
+      bucket: gitlab-uploads
+    lfs:
+      enabled: true
+      bucket: gitlab-lfs
+    packages:
+      enabled: true
+      bucket: gitlab-packages
+    terraformState:
+      enabled: false
+    dependencyProxy:
+      enabled: false
+    omniauth:
+      enabled: true
+      allowSingleSignOn:
+        - openid_connect
+      blockAutoCreatedUsers: false
+      providers:
+        - secret: gitlab-oidc-secret
+          key: provider
+
+upgradeCheck:
+  enabled: false
+
+certmanager:
+  install: false
+
+nginx-ingress:
+  enabled: false
+
+prometheus:
+  install: false
+
+registry:
+  enabled: false
+
+gitlab-pages:
+  enabled: false
+
+gitlab-runner:
+  install: false
+
+gitlab:
+  webservice:
+    minReplicas: 1
+    maxReplicas: 1
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    workerProcesses: 2
+
+  sidekiq:
+    minReplicas: 1
+    maxReplicas: 1
+    resources:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+
+  gitaly:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: local-path
+
+  gitlab-shell:
+    minReplicas: 1
+    maxReplicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  toolbox:
+    enabled: false
+
+  kas:
+    enabled: false
+
+postgresql:
+  install: true
+  image:
+    registry: public.ecr.aws
+    repository: bitnami/postgresql
+    tag: "14"
+  metrics:
+    enabled: false
+  primary:
+    persistence:
+      size: 10Gi
+      storageClass: local-path
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+redis:
+  install: true
+  image:
+    registry: public.ecr.aws
+    repository: bitnami/redis
+    tag: "7.2"
+  metrics:
+    enabled: false
+  master:
+    persistence:
+      size: 5Gi
+      storageClass: local-path
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi

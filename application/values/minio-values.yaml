@@ -1,0 +1,80 @@
+mode: standalone
+
+replicas: 1
+
+rootUser: admin
+rootPassword: CHANGE_ME_MINIO_ADMIN
+
+persistence:
+  enabled: true
+  size: 50Gi
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 2Gi
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+  hosts:
+    - minio.homelab.local
+  tls:
+    - secretName: minio-tls
+      hosts:
+        - minio.homelab.local
+
+consoleIngress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+  hosts:
+    - minio-console.homelab.local
+  tls:
+    - secretName: minio-console-tls
+      hosts:
+        - minio-console.homelab.local
+
+metrics:
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus
+
+buckets:
+  - name: mlflow
+    policy: none
+    purge: false
+  - name: jupyterhub
+    policy: none
+    purge: false
+  - name: models
+    policy: none
+    purge: false
+  - name: velero
+    policy: none
+    purge: false
+  - name: milvus
+    policy: none
+    purge: false
+  - name: argo-workflows
+    policy: none
+    purge: false
+  - name: gitlab-artifacts
+    policy: none
+    purge: false
+  - name: gitlab-lfs
+    policy: none
+    purge: false
+  - name: gitlab-uploads
+    policy: none
+    purge: false
+  - name: gitlab-packages
+    policy: none
+    purge: false

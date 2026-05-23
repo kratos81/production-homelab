@@ -1,0 +1,151 @@
+---
+# OpenTelemetry Collector — receives traces/metrics from instrumented apps
+# and exports to Tempo (traces), Prometheus (metrics), Loki (logs)
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+spec:
+  mode: deployment
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+        timeout: 5s
+        send_batch_size: 1024
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 400
+        spike_limit_mib: 100
+      resource:
+        attributes:
+          - key: cluster
+            value: rke2-cluster-02
+            action: upsert
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.monitoring.svc.cluster.local:4317
+        tls:
+          insecure: true
+      otlphttp/prometheus:
+        endpoint: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/otlp
+        tls:
+          insecure: true
+      otlphttp/loki:
+        endpoint: http://loki.monitoring.svc.cluster.local:3100/otlp
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [otlp/tempo]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [otlphttp/prometheus]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [otlphttp/loki]
+---
+# Auto-instrumentation for Python applications
+apiVersion: opentelemetry.io/v1beta1
+kind: Instrumentation
+metadata:
+  name: python-instrumentation
+  namespace: opentelemetry
+spec:
+  exporter:
+    endpoint: http://otel-collector-collector.opentelemetry.svc.cluster.local:4317
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.25"
+  python:
+    env:
+      - name: OTEL_PYTHON_LOG_CORRELATION
+        value: "true"
+---
+# Auto-instrumentation for Java applications
+apiVersion: opentelemetry.io/v1beta1
+kind: Instrumentation
+metadata:
+  name: java-instrumentation
+  namespace: opentelemetry
+spec:
+  exporter:
+    endpoint: http://otel-collector-collector.opentelemetry.svc.cluster.local:4317
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.25"
+  java: {}
+---
+# Auto-instrumentation for Node.js applications
+apiVersion: opentelemetry.io/v1beta1
+kind: Instrumentation
+metadata:
+  name: nodejs-instrumentation
+  namespace: opentelemetry
+spec:
+  exporter:
+    endpoint: http://otel-collector-collector.opentelemetry.svc.cluster.local:4317
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.25"
+  nodejs: {}
+---
+# Auto-instrumentation for Go applications
+apiVersion: opentelemetry.io/v1beta1
+kind: Instrumentation
+metadata:
+  name: go-instrumentation
+  namespace: opentelemetry
+spec:
+  exporter:
+    endpoint: http://otel-collector-collector.opentelemetry.svc.cluster.local:4317
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.25"
+  go: {}
+---
+# ServiceMonitor for OTel Collector Prometheus metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otel-collector-collector
+  endpoints:
+    - port: monitoring
+      interval: 30s

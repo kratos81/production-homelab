@@ -1,0 +1,52 @@
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+
+enforcer:
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+manager:
+  ingress:
+    enabled: true
+    host: neuvector.homelab.local
+    ingressClassName: nginx
+    tls: true
+    secretName: neuvector-tls
+    annotations:
+      cert-manager.io/cluster-issuer: homelab-ca-issuer
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+scanner:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+containerd:
+  enabled: true
+  path: /run/k3s/containerd/containerd.sock

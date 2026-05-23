@@ -1,0 +1,194 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: security-report-agent
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: security-report-agent
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces", "services", "configmaps", "secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["kyverno.io"]
+    resources: ["policyreports", "clusterpolicyreports"]
+    verbs: ["get", "list"]
+  - apiGroups: ["wgpolicyk8s.io"]
+    resources: ["policyreports", "clusterpolicyreports"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: security-report-agent
+subjects:
+  - kind: ServiceAccount
+    name: security-report-agent
+    namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: security-report-agent
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: security-report-agent
+  namespace: monitoring
+spec:
+  schedule: "0 8 * * 1"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          serviceAccountName: security-report-agent
+          restartPolicy: OnFailure
+          containers:
+            - name: report
+              image: alpine:latest
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  apk add --no-cache curl jq kubectl > /dev/null 2>&1
+
+                  PROMETHEUS="http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+                  OLLAMA="http://ollama.ai-platform.svc.cluster.local:11434"
+                  MATTERMOST_WEBHOOK="${MATTERMOST_WEBHOOK_URL}"
+                  REPORT=""
+
+                  echo "=== Security Report Agent ==="
+                  echo "Collecting security posture data..."
+
+                  # 1. Kyverno Policy Reports
+                  echo ">> Kyverno policy violations..."
+                  KYVERNO_FAILS=$(kubectl get policyreports -A -o json 2>/dev/null | \
+                    jq '[.items[].results[]? | select(.result == "fail")] | length // 0')
+                  KYVERNO_WARNS=$(kubectl get policyreports -A -o json 2>/dev/null | \
+                    jq '[.items[].results[]? | select(.result == "warn")] | length // 0')
+                  CLUSTER_FAILS=$(kubectl get clusterpolicyreports -o json 2>/dev/null | \
+                    jq '[.items[].results[]? | select(.result == "fail")] | length // 0')
+
+                  KYVERNO_DETAILS=$(kubectl get policyreports -A -o json 2>/dev/null | \
+                    jq -r '[.items[].results[]? | select(.result == "fail") | {policy: .policy, rule: .rule, namespace: .source}] | group_by(.policy) | map({policy: .[0].policy, count: length}) | sort_by(-.count) | .[:10][] | "\(.policy): \(.count) violations"' 2>/dev/null || echo "none")
+
+                  REPORT="${REPORT}
+                  ## Kyverno Policy Compliance
+                  - Namespace policy failures: **${KYVERNO_FAILS}**
+                  - Namespace policy warnings: **${KYVERNO_WARNS}**
+                  - Cluster policy failures: **${CLUSTER_FAILS}**
+                  Top violations:
+                  \`\`\`
+                  ${KYVERNO_DETAILS}
+                  \`\`\`"
+
+                  # 2. Container image vulnerabilities (from Prometheus/Trivy exporter if available)
+                  echo ">> Image vulnerability metrics..."
+                  CRITICAL_CVES=$(curl -sf "${PROMETHEUS}/api/v1/query?query=sum(trivy_image_vulnerabilities{severity=\"Critical\"})%20or%20vector(0)" | \
+                    jq -r '.data.result[0].value[1] // "0"' 2>/dev/null || echo "N/A")
+                  HIGH_CVES=$(curl -sf "${PROMETHEUS}/api/v1/query?query=sum(trivy_image_vulnerabilities{severity=\"High\"})%20or%20vector(0)" | \
+                    jq -r '.data.result[0].value[1] // "0"' 2>/dev/null || echo "N/A")
+
+                  REPORT="${REPORT}
+
+                  ## Container Vulnerabilities (cluster-wide)
+                  - Critical CVEs: **${CRITICAL_CVES}**
+                  - High CVEs: **${HIGH_CVES}**"
+
+                  # 3. Pods running as root or privileged
+                  echo ">> Privileged container audit..."
+                  PRIVILEGED=$(kubectl get pods -A -o json | \
+                    jq '[.items[] | select(.spec.containers[]?.securityContext.privileged == true) | .metadata.namespace + "/" + .metadata.name] | unique | length')
+                  ROOT_PODS=$(kubectl get pods -A -o json | \
+                    jq '[.items[] | select(.spec.containers[]?.securityContext.runAsNonRoot != true and .spec.securityContext.runAsNonRoot != true) | .metadata.namespace + "/" + .metadata.name] | unique | length')
+
+                  REPORT="${REPORT}
+
+                  ## Runtime Security
+                  - Privileged containers: **${PRIVILEGED}**
+                  - Pods not explicitly non-root: **${ROOT_PODS}**"
+
+                  # 4. Pods without resource limits
+                  echo ">> Resource limits audit..."
+                  NO_LIMITS=$(kubectl get pods -A -o json | \
+                    jq '[.items[] | select(.spec.containers[]? | .resources.limits == null or .resources.limits == {}) | .metadata.namespace + "/" + .metadata.name] | unique | length')
+
+                  REPORT="${REPORT}
+                  - Pods without resource limits: **${NO_LIMITS}**"
+
+                  # 5. Expiring certificates
+                  echo ">> Certificate expiry check..."
+                  EXPIRING_CERTS=$(curl -sf "${PROMETHEUS}/api/v1/query?query=certmanager_certificate_expiration_timestamp_seconds%20-%20time()%20%3C%20604800" | \
+                    jq -r '.data.result | length // 0' 2>/dev/null || echo "N/A")
+
+                  REPORT="${REPORT}
+
+                  ## Certificates
+                  - Certs expiring within 7 days: **${EXPIRING_CERTS}**"
+
+                  # 6. Failed Prometheus alerts (active alerts)
+                  echo ">> Active alerts..."
+                  FIRING_ALERTS=$(curl -sf "${PROMETHEUS}/api/v1/alerts" | \
+                    jq -r '[.data.alerts[] | select(.state == "firing")] | length // 0' 2>/dev/null || echo "N/A")
+                  ALERT_LIST=$(curl -sf "${PROMETHEUS}/api/v1/alerts" | \
+                    jq -r '[.data.alerts[] | select(.state == "firing") | .labels.alertname] | unique | join(", ")' 2>/dev/null || echo "none")
+
+                  REPORT="${REPORT}
+
+                  ## Active Alerts
+                  - Firing alerts: **${FIRING_ALERTS}**
+                  - Alert names: ${ALERT_LIST}"
+
+                  # 7. AI Summary via Ollama
+                  echo ">> Generating AI summary..."
+                  AI_SUMMARY=$(curl -sf "${OLLAMA}/api/generate" \
+                    -H "Content-Type: application/json" \
+                    -d "$(jq -n --arg prompt "You are a DevSecOps security analyst. Summarize this weekly security report in 3-5 bullet points. Focus on the most critical items that need immediate attention and recommend specific actions. Be concise.
+
+                  DATA:
+                  Kyverno failures: ${KYVERNO_FAILS} namespace, ${CLUSTER_FAILS} cluster
+                  Critical CVEs: ${CRITICAL_CVES}, High CVEs: ${HIGH_CVES}
+                  Privileged containers: ${PRIVILEGED}
+                  Pods not non-root: ${ROOT_PODS}
+                  Pods without limits: ${NO_LIMITS}
+                  Certs expiring in 7d: ${EXPIRING_CERTS}
+                  Firing alerts: ${FIRING_ALERTS} (${ALERT_LIST})" \
+                    --arg model "llama3.2:3b" \
+                    '{model: $model, prompt: $prompt, stream: false}')" | \
+                    jq -r '.response // "AI summary unavailable"' 2>/dev/null || echo "AI summary unavailable")
+
+                  FULL_REPORT="### :shield: Weekly Security Posture Report
+                  **Cluster:** rke2-cluster-02 | **Date:** $(date +%Y-%m-%d)
+
+                  ## AI Summary
+                  ${AI_SUMMARY}
+
+                  ---
+                  ${REPORT}"
+
+                  echo ">> Posting to Mattermost..."
+                  curl -sf -X POST "${MATTERMOST_WEBHOOK}" \
+                    -H "Content-Type: application/json" \
+                    -d "$(jq -n --arg text "${FULL_REPORT}" '{text: $text}')"
+
+                  echo "=== Security Report Complete ==="
+              env:
+                - name: MATTERMOST_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: security-report-webhook
+                      key: url
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi

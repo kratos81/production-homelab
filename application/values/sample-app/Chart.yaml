@@ -1,0 +1,4 @@
+apiVersion: v2
+name: sample-app
+version: 0.1.0
+description: A simple sample application for DevSecOps pipeline demonstration

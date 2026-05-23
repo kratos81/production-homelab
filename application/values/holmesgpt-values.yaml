@@ -1,0 +1,25 @@
+additionalEnvVars:
+  - name: OLLAMA_BASE_URL
+    value: "http://ollama.ai-platform.svc.cluster.local:11434"
+
+modelList:
+  - name: llama3.2:3b
+    provider: ollama
+    temperature: 0.1
+
+toolsets:
+  kubernetes/logs: true
+  kubernetes/resources: true
+  prometheus/query: true
+  grafana/query: true
+
+prometheusUrl: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+alertmanagerUrl: "http://prometheus-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 1Gi

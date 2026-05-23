@@ -1,0 +1,23 @@
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+monitoring:
+  podMonitorEnabled: true
+  podMonitorAdditionalLabels:
+    release: prometheus
+  grafanaDashboard:
+    create: true
+    labels:
+      grafana_dashboard: "1"
+
+config:
+  data:
+    INHERITED_ANNOTATIONS: "cert-manager.io/*"
+    INHERITED_LABELS: "app.kubernetes.io/*"

@@ -1,0 +1,25 @@
+apiVersion: v1
+baseDomain: emagetech.io
+metadata:
+  name: okd
+compute:
+- hyperthreading: Enabled
+  name: worker
+  replicas: 0
+controlPlane:
+  hyperthreading: Enabled
+  name: master
+  replicas: 3
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16
+  machineNetwork:
+  - cidr: 10.0.0.0/24
+platform:
+  none: {}
+pullSecret: '{"auths":{"fake":{"auth":"aWQ6cGFzcwo="}}}'
+sshKey: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDQ5fruVJeTJ+5mSzJ870x0fMqC9dhYCT3FLWqA/uYB7EDSK1QK1gjV/5GeUTmRfHsVcFKmbCy8F+AH1WZX9YhxHHZQW10sEf4oUGsdW5dX6S6P65b7R/o2fRL0MZVXnKumXAnITyw7eJMiidHP2geNdpsclSnIaBkOgnrYFnTeg0YNE+4Tpn79lrbaPULE5/UQR4HA+SfbeT6BS4sf+CGE8j3Q/mgE5AvXoG91F+wmXcDxVjY+1EczDA9o1qyvWIpHQ+w37yhKKmY5jIq3s3rquJWtz6b6/RtgBgRwWWtvc5yuNwc5Z/ENiE41kCK8B8Ucv2nhZKL8iRipdZ1BwXSXJFBWlPPBzBOoAGPsQ8eUU3IkXS4irKlvmjKzVfc0+bilZeisHoiJzYMyoD3t8nv2jEUiH/5Z5SJhPKb+QAwlj2g5EfXfSbYbg/e1MyneVNFRj5xh2tZ1Ww6aebSHQzswSw4Ps3JIhsa+lhBzKk5oRSUPYwCT/MHAW5jZ6ZqdcRs2cIBz39nQJ1t8ppKCQis0LZDccSkeyvoCXyiptl19lnvRKBABbaezDRafyE4YU/YgDIzHKlPKwTn1DTumdFmT63qbB4hsdJYtXuMA1h6yJ2rh/DV/R/7T1tA5xJXCZqyXhtyVRAvgeFh1j9shkrIlLtZ0t7e696dAVdupEa1GGQ== kofoegbu@MacBookPro-K639YDXFL7.local'

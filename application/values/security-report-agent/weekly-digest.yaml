@@ -1,0 +1,75 @@
+---
+# AI Security Weekly Digest — runs every Monday at 8am
+# Queries Prometheus for pipeline security trends and posts summary to Mattermost
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ai-security-weekly-digest
+  namespace: monitoring
+spec:
+  schedule: "0 8 * * 1"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: digest
+              image: alpine:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  apk add --no-cache curl jq >/dev/null 2>&1
+
+                  PROM="http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+                  OLLAMA="http://ollama.ai-platform.svc.cluster.local:11434/api/generate"
+                  WEBHOOK="https://mattermost.homelab.local/hooks/CHANGE_ME_MATTERMOST_WEBHOOK_ID"
+
+                  # Query last 7 days of pipeline metrics
+                  AVG_SCORE=$(curl -sf "${PROM}/api/v1/query?query=avg_over_time(pipeline_security_score[7d])" | jq -r '.data.result[0].value[1] // "N/A"')
+                  TOTAL_CRITS=$(curl -sf "${PROM}/api/v1/query?query=sum_over_time(pipeline_trivy_critical_cves[7d])" | jq -r '.data.result[0].value[1] // "0"')
+                  TOTAL_HIGHS=$(curl -sf "${PROM}/api/v1/query?query=sum_over_time(pipeline_trivy_high_cves[7d])" | jq -r '.data.result[0].value[1] // "0"')
+                  TOTAL_SAST=$(curl -sf "${PROM}/api/v1/query?query=sum_over_time(pipeline_semgrep_findings[7d])" | jq -r '.data.result[0].value[1] // "0"')
+                  TOTAL_SECRETS=$(curl -sf "${PROM}/api/v1/query?query=sum_over_time(pipeline_secrets_detected[7d])" | jq -r '.data.result[0].value[1] // "0"')
+
+                  PROMPT="You are the Chief Security Officer writing a weekly security digest for the engineering team. Based on these pipeline metrics from the last 7 days, write a concise weekly report:
+
+                  Average Security Score: ${AVG_SCORE}%
+                  Total Critical CVEs: ${TOTAL_CRITS}
+                  Total High CVEs: ${TOTAL_HIGHS}
+                  Total SAST Findings: ${TOTAL_SAST}
+                  Total Secrets Detected: ${TOTAL_SECRETS}
+
+                  Include:
+                  1. Week-over-week trend (improving/declining/stable)
+                  2. Top risk area this week
+                  3. Three action items for the team
+                  4. Security highlight (something good that happened)
+
+                  Keep it under 15 lines. Professional tone."
+
+                  REPORT=$(curl -sf "$OLLAMA" -H "Content-Type: application/json" \
+                    -d "$(jq -n --arg prompt "$PROMPT" --arg model "llama3.2:3b" \
+                      '{model: $model, prompt: $prompt, stream: false}')" \
+                    | jq -r '.response // "Weekly digest unavailable"' 2>/dev/null || echo "Ollama not reachable")
+
+                  # Post to Mattermost
+                  curl -sk -X POST "$WEBHOOK" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"channel\":\"security-weekly\",\"text\":\"### :shield: Weekly Security Digest\n**Period:** Last 7 days\n**Avg Security Score:** ${AVG_SCORE}%\n**Critical CVEs:** ${TOTAL_CRITS} | **High CVEs:** ${TOTAL_HIGHS} | **SAST:** ${TOTAL_SAST} | **Secrets:** ${TOTAL_SECRETS}\n\n${REPORT}\"}" \
+                    2>/dev/null || echo "Mattermost post failed"
+
+                  echo "Weekly digest sent"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi

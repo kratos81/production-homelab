@@ -1,0 +1,95 @@
+server:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: homelab-ca-issuer
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    ingressClassName: nginx
+    hostname: argocd.homelab.local
+    tls: true
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+controller:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 4
+      memory: 4Gi
+  env:
+    - name: ARGOCD_RECONCILIATION_TIMEOUT
+      value: "600s"
+
+repoServer:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 3Gi
+
+redis:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+configs:
+  params:
+    server.insecure: false
+  cm:
+    timeout.reconciliation: "600s"
+    url: https://argocd.homelab.local
+    ui.bannercontent: "HomeLab DevSecOps Platform"
+    ui.bannerurl: "https://homelab.local"
+    ui.bannerpermanent: "true"
+    ui.bannerposition: "top"
+    ui.bannercolor: "#373A6F"
+    ui.bannertextcolor: "#FFFFFF"
+    oidc.config: |
+      name: Keycloak
+      issuer: https://keycloak.homelab.local/realms/homelab
+      clientID: argocd
+      clientSecret: argocd-keycloak-secret-2024
+      requestedScopes:
+        - openid
+        - profile
+        - email
+    oidc.tls.insecure.skip.verify: "true"
+  rbac:
+    policy.csv: |
+      g, /admins, role:admin
+    policy.default: role:readonly
+    scopes: "[groups]"

@@ -1,0 +1,70 @@
+isClusterService: false
+
+serviceType: LoadBalancer
+
+service:
+  annotations:
+    metallb.universe.tf/address-pool: default
+  loadBalancerIP: "10.0.1.210"
+
+servers:
+  - zones:
+      - zone: homelab.local.
+        scheme: dns://
+    port: 53
+    plugins:
+      - name: errors
+      - name: health
+        configBlock: |-
+          lameduck 5s
+      - name: ready
+      - name: file
+        parameters: /etc/coredns/homelab.local.db homelab.local
+      - name: log
+      - name: cache
+        parameters: 30
+
+zoneFiles:
+  - filename: homelab.local.db
+    domain: homelab.local
+    contents: |
+      $ORIGIN homelab.local.
+      @    3600 IN SOA  ns1.homelab.local. admin.homelab.local. (
+                          2024010100 ; serial
+                          7200       ; refresh
+                          3600       ; retry
+                          1209600    ; expire
+                          3600       ; minimum
+                        )
+           3600 IN NS   ns1.homelab.local.
+      ns1  3600 IN A    10.0.1.210
+
+      ; Wildcard entry for all platform apps
+      *    300  IN A    10.0.1.200
+
+      ; Rancher management cluster
+      rancher 300 IN A  10.0.1.221
+
+
+      ; OKD cluster (okd.homelab.local)
+      api.okd     300 IN A  10.0.0.131
+      api-int.okd 300 IN A  10.0.0.131
+      *.apps.okd  300 IN A  10.0.0.134
+      etcd-0.okd  300 IN A  10.0.0.131
+      etcd-1.okd  300 IN A  10.0.0.132
+      etcd-2.okd  300 IN A  10.0.0.133
+      bootstrap.okd 300 IN A 10.0.0.130
+      master-0.okd  300 IN A 10.0.0.131
+      master-1.okd  300 IN A 10.0.0.132
+      master-2.okd  300 IN A 10.0.0.133
+      worker-0.okd  300 IN A 10.0.0.134
+      worker-1.okd  300 IN A 10.0.0.135
+      worker-2.okd  300 IN A 10.0.0.136
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

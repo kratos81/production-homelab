@@ -1,0 +1,47 @@
+replicaCount: 1
+
+ollama:
+  models:
+    pull:
+      - llama3.2:3b
+      - codellama:7b
+      - nomic-embed-text
+
+resources:
+  requests:
+    cpu: 2
+    memory: 8Gi
+  limits:
+    cpu: 4
+    memory: 16Gi
+
+persistentVolume:
+  enabled: true
+  size: 30Gi
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus
+
+service:
+  type: ClusterIP
+  port: 11434
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  hosts:
+    - host: ollama.homelab.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ollama-tls
+      hosts:
+        - ollama.homelab.local

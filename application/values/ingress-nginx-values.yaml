@@ -1,0 +1,19 @@
+controller:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+  service:
+    type: LoadBalancer
+  ingressClassResource:
+    name: nginx
+    default: true
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

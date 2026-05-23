@@ -1,0 +1,261 @@
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2
+        memory: 2Gi
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+
+grafana:
+  enabled: true
+  service:
+    type: ClusterIP
+  adminPassword: "CHANGE_ME_GRAFANA_ADMIN"
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: homelab-ca-issuer
+    hosts:
+      - grafana.homelab.local
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.homelab.local
+  assertNoLeakedSecrets: false
+  grafana.ini:
+    server:
+      root_url: https://grafana.homelab.local
+    analytics:
+      reporting_enabled: false
+    security:
+      login_remember_days: 7
+    auth:
+      login_cookie_name: grafana_homelab
+    branding:
+      login_logo: "https://homelab.local/en/wp-content/uploads/2024/08/emage_logo_site-Phone-300x155.png"
+      login_background: ""
+      app_title: "HomeLab - Grafana"
+      login_subtitle: "Future-Proof Your Skills and Level Up Your Career"
+    auth.generic_oauth:
+      enabled: true
+      name: Keycloak
+      allow_sign_up: true
+      client_id: grafana
+      client_secret: grafana-keycloak-secret-2024
+      scopes: openid profile email
+      auth_url: https://keycloak.homelab.local/realms/homelab/protocol/openid-connect/auth
+      token_url: https://keycloak.homelab.local/realms/homelab/protocol/openid-connect/token
+      api_url: https://keycloak.homelab.local/realms/homelab/protocol/openid-connect/userinfo
+      tls_skip_verify_insecure: true
+      role_attribute_path: contains(groups[*], 'admins') && 'Admin' || 'Viewer'
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: platform
+          orgId: 1
+          folder: Platform
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/platform
+  dashboards:
+    platform:
+      argocd:
+        gnetId: 14584
+        revision: 1
+        datasource: Prometheus
+      ingress-nginx:
+        gnetId: 9614
+        revision: 1
+        datasource: Prometheus
+      cert-manager:
+        gnetId: 11001
+        revision: 1
+        datasource: Prometheus
+      harbor:
+        gnetId: 14060
+        revision: 1
+        datasource: Prometheus
+      minio:
+        gnetId: 13502
+        revision: 1
+        datasource: Prometheus
+      vault:
+        gnetId: 12904
+        revision: 1
+        datasource: Prometheus
+      keycloak:
+        gnetId: 19659
+        revision: 1
+        datasource: Prometheus
+      jupyterhub:
+        gnetId: 17654
+        revision: 1
+        datasource: Prometheus
+      loki:
+        gnetId: 13639
+        revision: 1
+        datasource: Prometheus
+      litmus-chaos:
+        gnetId: 12096
+        revision: 1
+        datasource: Prometheus
+      argo-workflows:
+        gnetId: 20348
+        revision: 1
+        datasource: Prometheus
+      kyverno:
+        gnetId: 15804
+        revision: 1
+        datasource: Prometheus
+      milvus:
+        gnetId: 16568
+        revision: 1
+        datasource: Prometheus
+      metallb:
+        gnetId: 14127
+        revision: 1
+        datasource: Prometheus
+      neuvector:
+        gnetId: 16152
+        revision: 1
+        datasource: Prometheus
+      opencost:
+        gnetId: 15714
+        revision: 1
+        datasource: Prometheus
+      velero:
+        gnetId: 16829
+        revision: 1
+        datasource: Prometheus
+      mattermost:
+        gnetId: 14525
+        revision: 1
+        datasource: Prometheus
+      gitlab:
+        gnetId: 14236
+        revision: 1
+        datasource: Prometheus
+      alloy:
+        gnetId: 12611
+        revision: 1
+        datasource: Prometheus
+      tempo:
+        gnetId: 15991
+        revision: 1
+        datasource: Prometheus
+      external-dns:
+        gnetId: 15038
+        revision: 1
+        datasource: Prometheus
+      longhorn:
+        gnetId: 13032
+        revision: 1
+        datasource: Prometheus
+      kserve:
+        gnetId: 18032
+        revision: 1
+        datasource: Prometheus
+      tailscale:
+        gnetId: 24177
+        revision: 1
+        datasource: Prometheus
+      open-webui:
+        gnetId: 22867
+        revision: 1
+        datasource: Prometheus
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki.monitoring.svc.cluster.local:3100
+      access: proxy
+      isDefault: false
+      jsonData:
+        maxLines: 1000
+    - name: Tempo
+      type: tempo
+      url: http://tempo.monitoring.svc.cluster.local:3100
+      access: proxy
+      isDefault: false
+      jsonData:
+        tracesToLogsV2:
+          datasourceUid: loki
+          filterByTraceID: true
+        tracesToMetrics:
+          datasourceUid: prometheus
+        nodeGraph:
+          enabled: true
+        serviceMap:
+          datasourceUid: prometheus
+
+alertmanager:
+  config:
+    global:
+      resolve_timeout: 5m
+    templates:
+      - '/etc/alertmanager/config/*.tmpl'
+    route:
+      group_by: ['namespace', 'alertname']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: mattermost
+      routes:
+        - receiver: mattermost
+          matchers:
+            - severity =~ "critical|warning"
+          continue: true
+    receivers:
+      - name: mattermost
+        webhook_configs:
+          - url: "http://am-mm-forwarder.monitoring.svc.cluster.local:9876/webhook"
+            send_resolved: true
+  templateFiles:
+    mattermost.tmpl: |-
+      {{ define "mattermost.text" }}
+      {{ range .Alerts }}
+      {{ if eq .Status "firing" }}:fire: **[{{ .Labels.severity | toUpper }}]**{{ else }}:white_check_mark: **[RESOLVED]**{{ end }} {{ .Labels.alertname }}
+      **Namespace:** {{ .Labels.namespace }}
+      {{ if .Labels.pod }}**Pod:** {{ .Labels.pod }}{{ end }}
+      {{ if .Labels.deployment }}**Deployment:** {{ .Labels.deployment }}{{ end }}
+      **Summary:** {{ .Annotations.summary }}
+      {{ if .Annotations.description }}**Details:** {{ .Annotations.description }}{{ end }}
+      ---
+      {{ end }}
+      {{ end }}
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true

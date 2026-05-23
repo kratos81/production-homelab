@@ -1,0 +1,117 @@
+---
+# ClusterPolicy: Verify images from Harbor are signed with Cosign
+# This policy audits (does not block) unsigned images initially
+# Change validationFailureAction to "Enforce" once signing is in place
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-harbor-image-signatures
+  annotations:
+    policies.kyverno.io/title: Verify Harbor Image Signatures
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Verifies that container images from Harbor (harbor.homelab.local) are
+      signed using Cosign keyless signing. Set to Audit mode initially —
+      switch to Enforce once all pipelines sign images.
+spec:
+  validationFailureAction: Audit
+  background: true
+  webhookTimeoutSeconds: 30
+  rules:
+    - name: verify-harbor-images
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - imageReferences:
+            - "harbor.homelab.local/*"
+          attestors:
+            - entries:
+                - keyless:
+                    rekor:
+                      url: https://rekor.sigstore.dev
+                    ctlog:
+                      ignoreSCT: true
+          mutateDigest: true
+          verifyDigest: true
+          required: false
+---
+# ClusterPolicy: Require image provenance annotations
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-image-provenance
+  annotations:
+    policies.kyverno.io/title: Require Image Provenance
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Audits that workloads in production namespaces have provenance
+      annotations (SLSA build info). Audit mode only.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: check-provenance-annotation
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+              namespaces:
+                - sample-app
+      validate:
+        message: >-
+          Deployments in production namespaces should have a
+          build-provenance annotation for SLSA compliance.
+        pattern:
+          metadata:
+            annotations:
+              slsa.dev/buildType: "*"
+---
+# ClusterPolicy: Block images from untrusted registries
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-image-registries
+  annotations:
+    policies.kyverno.io/title: Restrict Image Registries
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Audits that images come from trusted registries only.
+      Trusted: harbor.homelab.local, docker.io, ghcr.io, gcr.io,
+      quay.io, registry.k8s.io, public.ecr.aws
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: validate-registries
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: "Images must come from trusted registries."
+        foreach:
+          - list: "request.object.spec.[initContainers, containers][]"
+            deny:
+              conditions:
+                all:
+                  - key: "{{element.image}}"
+                    operator: AnyNotIn
+                    value:
+                      - "harbor.homelab.local/*"
+                      - "docker.io/*"
+                      - "ghcr.io/*"
+                      - "gcr.io/*"
+                      - "quay.io/*"
+                      - "registry.k8s.io/*"
+                      - "public.ecr.aws/*"
+                      - "litmuschaos/*"
+                      - "litmuschaos.docker.scarf.sh/*"

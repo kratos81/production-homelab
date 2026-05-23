@@ -1,0 +1,78 @@
+---
+# CronJob: checks Vault seal status every 5 minutes and unseals if needed
+# This is a safety net in case the postStart hook fails (e.g., after node reboot)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-auto-unseal
+  namespace: vault
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 120
+      template:
+        spec:
+          serviceAccountName: default
+          restartPolicy: Never
+          containers:
+            - name: unseal
+              image: public.ecr.aws/bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Install curl (kubectl image is minimal)
+                  VAULT_ADDR="http://vault.vault.svc.cluster.local:8200"
+
+                  # Check if Vault is sealed
+                  RESPONSE=$(wget -qO- "$VAULT_ADDR/v1/sys/seal-status" 2>/dev/null || echo '{}')
+                  SEALED=$(echo "$RESPONSE" | grep -o '"sealed":true' | head -1)
+
+                  if [ -n "$SEALED" ]; then
+                    echo "Vault is sealed — unsealing..."
+                    UNSEAL_KEY=$(kubectl get secret vault-unseal-key -n vault -o jsonpath='{.data.unseal-key}' | base64 -d)
+                    wget -qO- --post-data="{\"key\":\"$UNSEAL_KEY\"}" \
+                      --header="Content-Type: application/json" \
+                      "$VAULT_ADDR/v1/sys/unseal" 2>/dev/null
+                    echo "Unseal command sent"
+                  else
+                    echo "Vault is not sealed or not reachable — no action needed"
+                  fi
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+---
+# RBAC: allow the CronJob to read the unseal key secret
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-unseal-reader
+  namespace: vault
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["vault-unseal-key"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-unseal-reader
+  namespace: vault
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: vault
+roleRef:
+  kind: Role
+  name: vault-unseal-reader
+  apiGroup: rbac.authorization.k8s.io

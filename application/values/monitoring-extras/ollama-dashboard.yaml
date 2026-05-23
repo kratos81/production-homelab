@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-ollama
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  ollama.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "description": "Ollama LLM inference server metrics",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "links": [],
+      "panels": [
+        {
+          "title": "Inference Request Rate",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(ollama_request_duration_seconds_count{job=~\".*ollama.*\"}[5m])) by (model)",
+              "legendFormat": "{{model}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "Inference Latency by Model (p95)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(ollama_request_duration_seconds_bucket{job=~\".*ollama.*\"}[5m])) by (le, model))",
+              "legendFormat": "{{model}} p95"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "Ollama Up",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "up{job=~\".*ollama.*\"}",
+              "legendFormat": "Ollama"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+              ]
+            }
+          }
+        },
+        {
+          "title": "Loaded Models",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 4, "x": 4, "y": 8 },
+          "targets": [
+            {
+              "expr": "ollama_models_loaded{job=~\".*ollama.*\"}",
+              "legendFormat": "Models"
+            }
+          ]
+        },
+        {
+          "title": "Tokens Generated Rate",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(ollama_tokens_generated_total{job=~\".*ollama.*\"}[5m])) by (model)",
+              "legendFormat": "{{model}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "Prompt Eval Tokens Rate",
+          "type": "timeseries",
+          "gridPos": { "h": 4, "w": 8, "x": 16, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(ollama_prompt_eval_count_total{job=~\".*ollama.*\"}[5m])) by (model)",
+              "legendFormat": "{{model}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "GPU Memory Usage",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "expr": "container_memory_working_set_bytes{namespace=\"ollama\", container=\"ollama\"}",
+              "legendFormat": "Working Set"
+            },
+            {
+              "expr": "container_memory_rss{namespace=\"ollama\", container=\"ollama\"}",
+              "legendFormat": "RSS"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "CPU Usage",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"ollama\", container!=\"\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        },
+        {
+          "title": "Network I/O",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+          "targets": [
+            {
+              "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"ollama\"}[5m]))",
+              "legendFormat": "Received"
+            },
+            {
+              "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"ollama\"}[5m]))",
+              "legendFormat": "Transmitted"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps",
+              "custom": { "drawStyle": "line", "fillOpacity": 10 }
+            }
+          }
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["ollama", "llm", "ai", "platform"],
+      "templating": { "list": [] },
+      "time": { "from": "now-1h", "to": "now" },
+      "title": "Ollama",
+      "uid": "ollama-custom"
+    }

@@ -1,0 +1,20 @@
+apiVersion: core.k8sgpt.ai/v1alpha1
+kind: K8sGPT
+metadata:
+  name: k8sgpt
+  namespace: k8sgpt
+spec:
+  ai:
+    enabled: true
+    model: llama3.2:3b
+    backend: localai
+    baseUrl: http://ollama.ai-platform.svc.cluster.local:11434/v1
+  noCache: false
+  version: v0.3.41
+  repository: ghcr.io/k8sgpt-ai/k8sgpt
+  integrations:
+    trivy:
+      enabled: false
+  extraOptions:
+    backstage:
+      enabled: false

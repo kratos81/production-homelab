@@ -1,0 +1,35 @@
+gitlabUrl: http://gitlab-webservice-default.gitlab.svc:8181
+
+runnerRegistrationToken: "CHANGE_ME_RUNNER_TOKEN"
+
+rbac:
+  create: true
+
+concurrent: 3
+
+runners:
+  privileged: false
+  namespace: gitlab-runners
+  config: |
+    [[runners]]
+      environment = ["GIT_SSL_NO_VERIFY=true"]
+      [runners.kubernetes]
+        namespace = "gitlab-runners"
+        image = "alpine:latest"
+        privileged = false
+        service_account = "gitlab-runner"
+        node_selector_overwrite_allowed = ".*"
+        [runners.kubernetes.node_selector]
+          "kubernetes.io/hostname" = "rke2-cluster-02-cp-0"
+        [[runners.kubernetes.volumes.empty_dir]]
+          name = "docker-certs"
+          mount_path = "/certs/client"
+          medium = "Memory"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
