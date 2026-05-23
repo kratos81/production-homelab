@@ -60,7 +60,7 @@ This repository contains the Infrastructure-as-Code (IaC) and GitOps manifests f
 
 ```
 +===========================================================================+
-|                        HARVESTER HCI  (10.0.0.1)                      |
+|                        VMWARE VSPHERE / VCENTER                      |
 |                     Bare-Metal Hyperconverged Infrastructure              |
 |  +---------------------------------------------------------------------+  |
 |  |                                                                     |  |
@@ -1553,12 +1553,12 @@ infra/
 |   |-- .gitlab-ci.yml                    # Full DevSecOps pipeline (7 stages)
 |
 |-- # ===== LEGACY / ALTERNATE ENVIRONMENTS =====
-|-- harvester/                            # Alternate vSphere Terraform config (older approach)
+|-- vsphere/                            # Alternate vSphere Terraform config (older approach)
 |   |-- main.tf                           # Dev + Sandbox clusters via null_resource/kubectl
 |   |-- terraform.tfvars
 |
 |-- dev/                                  # Dev environment Terraform (simpler VM provisioning)
-|   |-- main.tf                           # harvester_virtualmachine resources
+|   |-- main.tf                           # vsphere_virtual_machine resources
 |   |-- variables.tf
 |   |-- terraform.tfvars
 ```

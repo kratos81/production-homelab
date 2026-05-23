@@ -88,4 +88,4 @@ kubectl -n longhorn-system delete volume.longhorn.io <volume-name> --grace-perio
 - Longhorn Docs: https://longhorn.io/docs/
 - Longhorn Helm Chart: https://github.com/longhorn/charts
 - Longhorn Best Practices: https://longhorn.io/docs/latest/best-practices/
-- Longhorn on vSphere: https://docs.harvesterhci.io/v1.2/advanced/longhorn
+- Longhorn on vSphere: https://docs.longhorn.io/v1.2/advanced/longhorn
